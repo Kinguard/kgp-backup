@@ -1,4 +1,4 @@
-opi-backup (1.0.2) UNRELEASED; urgency=low
+opi-backup (1.0.2) testing; urgency=low
 
   * Fixed typo in post inst script
 
