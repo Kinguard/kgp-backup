@@ -1,3 +1,9 @@
+opi-backup (1.0.2) UNRELEASED; urgency=low
+
+  * Fixed typo in post inst script
+
+ -- PA Nilsson <pa@openproducts.se>  Wed, 18 Jun 2014 11:22:16 +0200
+
 opi-backup (1.0.1) testing; urgency=low
 
   * First package build

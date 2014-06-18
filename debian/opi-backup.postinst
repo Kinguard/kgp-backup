@@ -23,13 +23,13 @@ case "$1" in
 
 	if [ ! -e /etc/cron.daily/opi_backup ]
 	then
-		ln -s /usr/share/opi_backup.sh /etc/cron.daily/opi_backup
+		ln -s /usr/share/opi-backup.sh /etc/cron.daily/opi_backup
 	fi
 
 	# Fix permissions
-	chmod 0770 /usr/share/opi_backup/s3ql_backup.sh
-	chmod 0770 /usr/share/opi_backup/opi_backup.sh
-	chmod 0770 /usr/share/opi_backup/opi_mount.sh
+	chmod 0770 /usr/share/opi-backup/s3ql_backup.sh
+	chmod 0770 /usr/share/opi-backup/opi_backup.sh
+	chmod 0770 /usr/share/opi-backup/opi_mount.sh
 	chmod 0660 /etc/opi/backup.conf
 
 	chown -R root:root /usr/share/opi-backup/
