@@ -1,0 +1,16 @@
+Source: opi-backup
+Section: devel
+Priority: optional
+Maintainer: PA Nilsson <pa@openproducts.se>
+Build-Depends: debhelper (>= 8.0.0)
+Standards-Version: 3.9.4
+
+Package: opi-backup
+Architecture: all
+Depends: ${misc:Depends},
+ s3ql,
+ rsync,
+ anacron
+Conflicts: 
+Description: OPI backup scripts
+ Sets up OPI backup scripts and enables them to run from anacron
