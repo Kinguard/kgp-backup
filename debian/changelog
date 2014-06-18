@@ -1,0 +1,11 @@
+opi-backup (1.0.1) testing; urgency=low
+
+  * First package build
+
+ -- PA Nilsson <pa@openproducts.se>  Wed, 18 Jun 2014 11:12:33 +0200
+
+opi-backup (1.0) testing; urgency=low
+
+  * Initial Release.
+
+ -- PA Nilsson <pa@openproducts.se>  Wed, 18 Jun 2014 09:11:00 +0200
