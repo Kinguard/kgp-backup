@@ -1,5 +1,5 @@
 #!/bin/sh
-# postrm script for nginx-opi
+# postrm script for 
 #
 # see: dh_installdeb(1)
 
