@@ -10,7 +10,8 @@ Architecture: all
 Depends: ${misc:Depends},
  s3ql,
  rsync,
- anacron
+ anacron,
+ opi-control
 Conflicts: 
 Description: OPI backup scripts
  Sets up OPI backup scripts and enables them to run from anacron
