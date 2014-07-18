@@ -1,5 +1,0 @@
-[s3c]
-storage-url: s3c://storage.openproducts.com/
-backend-login: NN
-backend-password: NotUsed
-fs-passphrase: a

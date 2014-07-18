@@ -1,5 +1,6 @@
 backup.conf	/etc/opi
-authinfo2	/etc/opi
-opi_mount.sh	/usr/share/opi-backup
+backup_auth.conf	/var/opi/etc/backup_auth.conf
+mount_fs.sh	/usr/share/opi-backup
 s3ql_backup.sh  /usr/share/opi-backup
 opi_backup.sh   /usr/share/opi-backup
+get_quota.py    /usr/share/opi-backup

@@ -23,7 +23,7 @@ cd ${backupbin_path}
 if [ $? -ne 0 ]; then
 	echo "Backup failed, check log file: $error_log"
 	echo "Backup failed, check log file: $error_log" > $alert_file
+else
+	"./link_backup.sh" &>> $error_log
 fi
-
-"./opi_mount.sh" &> $error_log
 

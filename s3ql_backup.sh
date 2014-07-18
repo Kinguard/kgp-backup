@@ -1,12 +1,10 @@
 #!/bin/bash
 source /etc/opi/sysinfo.conf
 source /etc/opi/backup.conf
+source ./mount_fs.sh
 
 new_backup=`date "+%Y-%m-%d_%H:%M:%S"`
 
-# Backup destination  (storage url)
-storage_url="${backend}/${unit_id}"
-echo $storage_url
 
 if [ ! -d $logdir ]; then
 	mkdir $logdir
@@ -26,50 +24,38 @@ echo "Backup started. This file shall be removed upon completion of the backup j
 echo "If the job is still running, this file is also present." >> "${logdir}/errors/$new_backup"
 
 
-# create dir tree, no error if existing
-echo "Mount point: $mountpoint"
-/bin/mkdir -p $mountpoint
-
-# Create cache dir
-mkdir -p $s3ql_cachedir
-
-# Test that the filesystem is mounted
-if grep -qs "$mountpoint" /proc/mounts; then
-	echo "Filesystem already mounted"
+if [[ $backend == *'s3op'* ]]; then
+	#Get the quota and bytes used from storage server
+	IFS='%'
+	while read -r line; do
+		declare $line
+	done < <(${backupbin_path}/get_quota.py -t sh)
+	unset IFS
+	if [ ! $Code ]; then
+		echo "Unknown response from server, exiting"
+		exit 1
 else
-	# remove any old symlinks
-	cd $owncloud_dir
-	for dir in */ ; do
-		echo "DIR: $dir"
-    		if [[ -L "${dir}/files/backup" ]]; then
-			echo "Removing symlink to backupdir '$dir/files/backup'."
-			rm -rf "${dir}/files/backup"
+		if [ $Code != "200" ]; then
+			if [[ -z "$message" ]]; then
+				echo "Server responded with code $Code"
+			else
+				echo "$message"
 		fi
-	done
-	# Recover cache if e.g. system was shut down while fs was mounted
-	echo "FSCK args: --ssl-ca-path ${capath} --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  $storage_url"
-	${s3ql_path}fsck.s3ql --ssl-ca-path ${capath} --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  "$storage_url"
-
-	# Not mounted, then mount file system
-	echo "Mount filesystem"
-	${s3ql_path}mount.s3ql --quiet --ssl-ca-path ${capath} --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file} "$storage_url" "$mountpoint"
+			exit 1
+		fi
 fi
 
-# forcefully remove any old links
-cd $owncloud_dir
-sys_users=()
-for dir in */ ; do
-	#echo "System user: $dir"
-	sys_users+=($dir)
-	if [[ -d "${dir}/files/backup" ]]; then
-		echo "Removing backupdir structure '$dir/files/backup'."
-		rm -rf "${dir}/files/backup"
+	if [ $bytes_used -gt $quota ]; then
+		echo "Insufficient space on target"
+		exit 1
 	fi
-done
+else
+	echo "OP backend not used"
+fi
 
 
 # Make sure the file system is unmounted when we are done
-trap "cd /; ${s3ql_path}umount.s3ql '$mountpoint'; rm -rf '$mountpoint'; echo $?" EXIT
+#trap "cd /; ${s3ql_path}umount.s3ql '$mountpoint'; rm -rf '$mountpoint'; echo $?" EXIT
 
 # Figure out the most recent backup
 cd "$mountpoint"
@@ -167,4 +153,15 @@ echo "Expire backups"
 # be installed, and it *may* also not have the .py ending.
 #${s3ql_contrib}expire_backups.py --use-s3qlrm 1 7 14 31 90 180 360
 ${s3ql_contrib}expire_backups.py --reconstruct-state 1 7 14 31 90 180 360
+# remove any symlinks that are not present in the backup
+echo "Removing links to expired backups"
+cd $owncloud_dir
+for dir in */ ; do
+	if [ -d "${dir}/files/backup" ]; then
+		find -L "${dir}/files/backup" -type l -delete
+	fi
+done
+
+echo "Syncing filesystem"
+${s3ql_path}s3qlctrl flushcache $mountpoint
 
