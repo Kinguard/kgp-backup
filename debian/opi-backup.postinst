@@ -35,7 +35,7 @@ case "$1" in
 	chmod 0770 /usr/share/opi-backup/opi_backup.sh
 	chmod 0770 /usr/share/opi-backup/mount_fs.sh
 	chmod 0770 /usr/share/opi-backup/link_backup.sh
-	chmod 0660 /usr/share/opi-backup/backup.conf
+	chmod 0600 /usr/share/opi-backup/backup.conf
 
 	chown -R root:root /usr/share/opi-backup/
 	chown root:root /etc/opi/backup_target.conf

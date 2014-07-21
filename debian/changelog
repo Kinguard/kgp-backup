@@ -1,3 +1,9 @@
+opi-backup (1.0.9) testing; urgency=low
+
+  * Fixed access rights to auth file
+
+ -- PA Nilsson <pa@openproducts.se>  Mon, 21 Jul 2014 14:23:10 +0200
+
 opi-backup (1.0.8) testing; urgency=low
 
   * Fixed path for backup auth file in debian install scripts
