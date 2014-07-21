@@ -2,4 +2,5 @@
 debian/files
 debian/*.log
 debian/*.substvars
+debian/*helper
 debian/opi-backup/

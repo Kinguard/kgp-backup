@@ -1,13 +1,53 @@
 #!/bin/bash
 source /etc/opi/sysinfo.conf
 source /etc/opi/backup.conf
+#set -x
+backupdisk="/mnt/usb"
 
 # Backup destination  (storage url)
+echo "Backend: $backend"
+if [[ $backend == *local* ]]; then
+	device=$(sed -n "s%\(/dev/sd\w*\)\s${backupdisk}.*%\1% p" /proc/mounts)
+	echo "Device $device"
+	if [ ! -z $device ]; then
+		if [ -b $device ] ; then
+			# the mountpoint exists and so does the device, lets use it.
+			echo "Usable device found"
+			mkdir -p ${backupdisk}/opi-backup
+			storage_url="${backend}/${backupdisk}/opi-backup"
+		else
+			echo "The mounted device does not exist, unmount"
+			umount $device
+			fusermount -u $mountpoint
+		fi
+	fi
+	if [ -z $storage_url ]; then	
+		# there is no suitable device mounted
+		
+		# create mountpoint for disk
+		mkdir -p $backupdisk
+		
+		for device in /dev/sd*; do
+			echo "Device: $device, try to mount it"
+			if [ -b $device ] && mount $device $backupdisk ; then
+				echo "Device $device mounted"
+				mkdir -p ${backupdisk}/opi-backup
+				storage_url="${backend}/${backupdisk}/opi-backup"
+				break
+			fi
+		done
+	fi
+else
 storage_url="${backend}/${unit_id}"
+fi
+if [ -z $storage_url ]; then
+	echo "No suitable device found for backup target, exiting"
+	exit 1	
+fi
 
-# Test if filesystem is mounted
+# Test if s3ql filesystem is mounted
 
-if grep -qs "$mountpoint" /proc/mounts; then
+if grep -qs "${mountpoint} " /proc/mounts; then
 	if [ -z "$(pgrep 'mount.s3ql')" ]; then
 		# s3ql is not running
 		echo "S3QL not running, umount"
@@ -58,6 +98,6 @@ if [ $fs_mounted -eq 0 ]; then
 	fi
 	# Not mounted, then mount file system
 	echo "Mount filesystem"
-	${s3ql_path}mount.s3ql --allow-other --ssl-ca-path ${capath} --quiet --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file} "$storage_url" "$mountpoint"
+	${s3ql_path}mount.s3ql --allow-other --ssl-ca-path ${capath} --quiet --cachedir ${s3ql_cachedir} --cachesize ${s3ql_cachesize} --log $log_file --authfile ${auth_file} "$storage_url" "$mountpoint"
 fi
 

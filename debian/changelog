@@ -1,3 +1,9 @@
+opi-backup (1.0.7) testing; urgency=low
+
+  * Added support to run backup on local disk
+
+ -- PA Nilsson <pa@openproducts.se>  Mon, 21 Jul 2014 08:52:32 +0200
+
 opi-backup (1.0.6) testing; urgency=low
 
   * Added quota support and changes to reflect opi-control

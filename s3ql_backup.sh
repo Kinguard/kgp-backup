@@ -1,7 +1,7 @@
 #!/bin/bash
 source /etc/opi/sysinfo.conf
 source /etc/opi/backup.conf
-source ./mount_fs.sh
+source ${backupbin_path}./mount_fs.sh
 
 new_backup=`date "+%Y-%m-%d_%H:%M:%S"`
 
@@ -153,14 +153,6 @@ echo "Expire backups"
 # be installed, and it *may* also not have the .py ending.
 #${s3ql_contrib}expire_backups.py --use-s3qlrm 1 7 14 31 90 180 360
 ${s3ql_contrib}expire_backups.py --reconstruct-state 1 7 14 31 90 180 360
-# remove any symlinks that are not present in the backup
-echo "Removing links to expired backups"
-cd $owncloud_dir
-for dir in */ ; do
-	if [ -d "${dir}/files/backup" ]; then
-		find -L "${dir}/files/backup" -type l -delete
-	fi
-done
 
 echo "Syncing filesystem"
 ${s3ql_path}s3qlctrl flushcache $mountpoint

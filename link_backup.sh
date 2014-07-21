@@ -7,7 +7,7 @@ cd $backup_mntpoint
 dates=()
 for dir in */ ; do
 	if [ $dir != "lost+found/" ]; then
-		echo "Backup date: $dir"
+		#echo "Backup date: $dir"
 		date="${dir%/}"
 		dates+=($date)	
 	fi
@@ -16,7 +16,14 @@ done
 
 cd $owncloud_dir
 echo "Creating backup structure"
+# remove any symlinks that are not present in the backup
+
+cd $owncloud_dir
 for user in */; do
+	if [ -d "${user}/files/backup" ]; then
+		find -L "${user}/files/backup" -type l -delete
+		#echo "Removing links to expired backups for '$user'"
+	fi
 	if [ -d "${owncloud_dir}/$user/files" ]; then
 		mkdir -p "${owncloud_dir}/$user/files/backup/"
 		for date in "${dates[@]}"; do
