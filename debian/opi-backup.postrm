@@ -22,7 +22,13 @@ set -e
 case "$1" in
     purge|remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
 
-	rm -f /etc/cron.daily/opi_backup
+	if [ -e /etc/cron.daily/opi_backup ]; then
+		rm -f /etc/cron.daily/opi_backup
+	fi
+
+	if [ -e /etc/opi/backup_target.conf ]; then
+		rm /etc/opi/backup_target.conf
+	fi
     ;;
 
     *)

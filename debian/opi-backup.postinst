@@ -25,15 +25,20 @@ case "$1" in
 	then
 		ln -s /usr/share/opi-backup/opi_backup.sh /etc/cron.daily/opi_backup
 	fi
+	if [ ! -e /etc/opi/backup_target.conf ]
+	then
+		echo 'backend="s3op://"' > /etc/opi/backup_target.conf
+	fi
 
 	# Fix permissions
 	chmod 0770 /usr/share/opi-backup/s3ql_backup.sh
 	chmod 0770 /usr/share/opi-backup/opi_backup.sh
-	chmod 0770 /usr/share/opi-backup/opi_mount.sh
-	chmod 0660 /etc/opi/backup.conf
+	chmod 0770 /usr/share/opi-backup/mount_fs.sh
+	chmod 0770 /usr/share/opi-backup/link_backup.sh
+	chmod 0660 /usr/share/opi-backup/backup.conf
 
 	chown -R root:root /usr/share/opi-backup/
-	chown root:root /etc/opi/backup.conf
+	chown root:root /etc/opi/backup_target.conf
 
     ;;
 

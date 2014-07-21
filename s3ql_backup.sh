@@ -1,7 +1,9 @@
 #!/bin/bash
 source /etc/opi/sysinfo.conf
-source /etc/opi/backup.conf
-source ${backupbin_path}./mount_fs.sh
+
+cd $(dirname "${BASH_SOURCE[0]}")
+source backup.conf
+source mount_fs.sh
 
 new_backup=`date "+%Y-%m-%d_%H:%M:%S"`
 
@@ -101,8 +103,8 @@ rsync -aHAXx --delete-during --delete-excluded --partial -v \
     --exclude "*/files/backup" \
     "${owncloud_dir}" "./${new_backup}/${userdata}"
 
-echo "Dump SQL database"
-/usr/bin/mysqldump -uroot -p${mysql_pwd} --all-databases > "./${new_backup}/${systemdir}/opi.sql"
+#echo "Dump SQL database"
+#/usr/bin/mysqldump -uroot -p${mysql_pwd} --all-databases > "./${new_backup}/${systemdir}/opi.sql"
 
 # Make the new backup immutable
 # ${s3ql_path}s3qllock "$new_backup"
@@ -116,12 +118,12 @@ chown -R root:root "./${new_backup}/${systemdir}"
 # and files to read only
 echo "Set permissions on user files"
 find "./${new_backup}" -type d -print0 | xargs -0 chmod 770 
-find "./${new_backup}" -type f -print0 | xargs -0 chmod 640
+find "./${new_backup}" -type f -print0 | xargs -r0 chmod 640  # there might not be any user files
 
 # only allow root access to system files
 echo "Set permissions on system files"
 find "./${new_backup}/${systemdir}" -type d -print0 | xargs -0 chmod 700 
-find "./${new_backup}/${systemdir}" -type f -print0 | xargs -0 chmod 600
+find "./${new_backup}/${systemdir}" -type f -print0 | xargs -r0 chmod 600
 
 rm "${logdir}/errors/$new_backup"
 

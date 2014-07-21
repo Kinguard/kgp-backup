@@ -1,8 +1,17 @@
 #!/bin/bash
+
+cd $(dirname "${BASH_SOURCE[0]}")
+source backup.conf
 source /etc/opi/sysinfo.conf
-source /etc/opi/backup.conf
+
+if [ -e $target_file ]; then
+	source  $target_file
+else
+	echo "Using default backend"
+	backend="s3op://" # set default
+fi
 #set -x
-backupdisk="/mnt/usb"
+
 
 # Backup destination  (storage url)
 echo "Backend: $backend"
@@ -38,7 +47,7 @@ if [[ $backend == *local* ]]; then
 		done
 	fi
 else
-storage_url="${backend}/${unit_id}"
+	storage_url="${backend}${storage_server}/${unit_id}"
 fi
 if [ -z $storage_url ]; then
 	echo "No suitable device found for backup target, exiting"
