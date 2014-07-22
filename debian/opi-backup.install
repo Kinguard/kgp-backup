@@ -1,5 +1,5 @@
 backup.conf	/usr/share/opi-backup
-backup_auth.conf	/var/opi/etc/
+backup_auth.conf	/usr/share/opi-backup
 mount_fs.sh	/usr/share/opi-backup
 s3ql_backup.sh  /usr/share/opi-backup
 opi_backup.sh   /usr/share/opi-backup
