@@ -1,3 +1,9 @@
+opi-backup (1.0.12) testing; urgency=low
+
+  * Fixed typo
+
+ -- PA Nilsson <pa@openproducts.se>  Thu, 24 Jul 2014 20:30:14 +0200
+
 opi-backup (1.0.11) testing; urgency=low
 
   * Improved error reporting

@@ -12,8 +12,8 @@ alert_file="${logdir}/alert"
 echo "none" > "/sys/class/leds/opi:red:usr3/trigger"
 
 function report_error {
-	echo "$1 Possibly more informaton in log file: $error_log" > $alert_file
-	echo "$1 Possibly more informaton in log file: $error_log"
+	echo "$1 (Possibly more informaton in log file: $error_log)" > $alert_file
+	echo "$1 (Possibly more informaton in log file: $error_log)"
 	echo "heartbeat" > "/sys/class/leds/opi:red:usr3/trigger"
 	echo "default-on" > "/sys/class/leds/opi:green:usr1/trigger"
 	exit 1
@@ -27,7 +27,7 @@ if [ -e $target_file ]; then
 		sd_card=$(sed -n "s%\(${def_sdcard}\)\s${def_opiloc}.*%\1% p" /proc/mounts) # get sd-card device
 		if [ -z $sd_card ] || [ ! -b $sd_card ]; then
 			# the backend must be defined and the sd-card device must exist and be mounted
-			report error "Backup aborted, no sd card found or sd card is not unlocked"
+			report_error "Backup aborted, no sd card found or sd card is not unlocked"
 		else
 			echo "Starting backup"
 		fi
@@ -36,7 +36,7 @@ if [ -e $target_file ]; then
 			echo "Backup not enabled"
 			exit 0
 		else 
-			report_error "Unknows backend: $backend"
+			report_error "Unknown backend: $backend"
 		fi
 	fi	
 else
