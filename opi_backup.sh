@@ -1,6 +1,5 @@
 #!/bin/bash
-cd $(dirname "${BASH_SOURCE[0]}")
-source backup.conf
+source /usr/share/opi-backup/backup.conf
 
 #sd card location
 def_sdcard="/dev/mapper/opi"
