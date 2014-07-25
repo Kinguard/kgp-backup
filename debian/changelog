@@ -1,3 +1,9 @@
+opi-backup (1.0.13) testing; urgency=low
+
+  * Turned backup off by default
+
+ -- PA Nilsson <pa@openproducts.se>  Fri, 25 Jul 2014 10:03:34 +0200
+
 opi-backup (1.0.12) testing; urgency=low
 
   * Fixed typo

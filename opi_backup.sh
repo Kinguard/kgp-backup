@@ -32,7 +32,7 @@ if [ -e $target_file ]; then
 			echo "Starting backup"
 		fi
 	else
-		if [[ backend == 'none' ]] ; then
+		if [ $backend == 'none' ] ; then
 			echo "Backup not enabled"
 			exit 0
 		else 

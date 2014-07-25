@@ -32,7 +32,7 @@ case "$1" in
 	fi
 	if [ ! -e /etc/opi/backup_target.conf ]
 	then
-		echo 'backend="s3op://"' > /etc/opi/backup_target.conf
+		echo 'backend="none"' > /etc/opi/backup_target.conf
 	fi
 
 	# Fix permissions
