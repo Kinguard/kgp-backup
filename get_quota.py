@@ -164,10 +164,10 @@ if __name__=='__main__':
             print("Missing parameters in sysinfo")
             sys.exit(1)
         unit_id = sysinfo['unit_id'].strip('"')
-        if 'capath' not in sysinfo:
+        if 'ca_path' not in sysinfo:
             print("Missing parameters in sysinfo")
             sys.exit(1)
-        cafile = sysinfo['capath'].strip('"')
+        cafile = sysinfo['ca_path'].strip('"')
         if 'sys_key' not in sysinfo:
             print("Missing parameters in sysinfo")
             sys.exit(1)
