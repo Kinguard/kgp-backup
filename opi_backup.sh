@@ -8,6 +8,11 @@ def_opiloc="/var/opi"
 error_log="${logdir}/backup.log"
 alert_file="${logdir}/alert"
 
+if [[ ! -z $(pgrep 's3ql_backup.sh') ]] ; then
+	echo "Backup already running, exiting"
+	exit 0
+fi
+
 echo "none" > "/sys/class/leds/opi:red:usr3/trigger"
 
 function report_error {
