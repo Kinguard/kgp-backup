@@ -117,7 +117,7 @@ chown -R root:root "./${new_backup}/${systemdir}"
 # Set directories to read and excute for group
 # and files to read only
 echo "Set permissions on user files"
-find "./${new_backup}" -type d -print0 | xargs -0 chmod 770 
+find "./${new_backup}" -type d -print0 | xargs -0 chmod 750 
 find "./${new_backup}" -type f -print0 | xargs -r0 chmod 640  # there might not be any user files
 
 # only allow root access to system files
