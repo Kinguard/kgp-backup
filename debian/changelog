@@ -2,6 +2,7 @@ opi-backup (1.0.18) testing; urgency=low
 
   * Added entire sd card area to backup
   * Dumping mysql to backup
+  * Added support to read "quota" from local device
 
  -- PA Nilsson <pa@openproducts.se>  Thu, 31 Jul 2014 21:11:12 +0200
 
