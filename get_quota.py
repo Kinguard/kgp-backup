@@ -208,7 +208,8 @@ if __name__=='__main__':
         print(e)
         sys.exit(1)
 
-    if backend == "s3op://":
+    if (backend == "s3op://") or (backend == "none"):
+        #report server quota even if service is not active.
         try:
             import ssl
             import http.client
@@ -272,11 +273,6 @@ if __name__=='__main__':
         response = {}
         response['quota'] = int(size) * 1024
         response['bytes_used'] = int(used) * 1024
-
-
-    elif backend == "none":
-        print("Backup not enabled, exit")
-        sys.exit(0)
 
     else:
         print("Unknown backend, exit")
