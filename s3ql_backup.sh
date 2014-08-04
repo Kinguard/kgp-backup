@@ -85,17 +85,18 @@ else
 		echo "No backupdir present, creating $new_backup"
 		mkdir $new_backup
 	fi
-	if [ ! -d "${new_backup}/${systemdir}" ]; then
-		echo "System dir not present, creating"
-		mkdir "${new_backup}/${systemdir}"
-	fi
+
+	#if [ ! -d "${new_backup}/${systemdir}" ]; then
+	#	echo "System dir not present, creating"
+	#	mkdir "${new_backup}/${systemdir}"
+	#fi
 	# userdata dir will be created by rsync below
 fi
 
 
 
 # ..and update the copy
-echo "Update copy"
+echo "Copy user files"
 
 rsync -aHAXx --delete-during --delete-excluded --partial -v \
     --exclude "*/cache/" \
@@ -103,8 +104,14 @@ rsync -aHAXx --delete-during --delete-excluded --partial -v \
     --exclude "*/files/backup" \
     "${owncloud_dir}" "./${new_backup}/${userdata}"
 
-#echo "Dump SQL database"
-#/usr/bin/mysqldump -uroot -p${mysql_pwd} --all-databases > "./${new_backup}/${systemdir}/opi.sql"
+echo "Copy system files"
+rsync -aHAXx --delete-during --delete-excluded --partial -v \
+    --exclude "${owncloud_dir}" \
+    --exclude "/var/opi/mysql" \
+    "/var/opi" "./${new_backup}/${systemdir}"
+
+echo "Dump SQL database"
+/usr/bin/mysqldump -uroot -p${mysql_pwd} --all-databases > "./${new_backup}/${systemdir}/opi.sql"
 
 # Make the new backup immutable
 # ${s3ql_path}s3qllock "$new_backup"
