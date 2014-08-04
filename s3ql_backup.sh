@@ -110,8 +110,8 @@ rsync -aHAXx --delete-during --delete-excluded --partial -v \
     --exclude "/var/opi/mysql" \
     "/var/opi" "./${new_backup}/${systemdir}"
 
-echo "Dump SQL database"
-/usr/bin/mysqldump -uroot -p${mysql_pwd} --all-databases > "./${new_backup}/${systemdir}/opi.sql"
+#echo "Dump SQL database"
+#/usr/bin/mysqldump -uroot -p${mysql_pwd} --all-databases > "./${new_backup}/${systemdir}/opi.sql"
 
 # Make the new backup immutable
 # ${s3ql_path}s3qllock "$new_backup"

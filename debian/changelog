@@ -1,3 +1,9 @@
+opi-backup (1.0.19) vili; urgency=low
+
+  * Temporary disable mysql dump
+
+ -- PA Nilsson <pa@openproducts.se>  Mon, 04 Aug 2014 12:26:47 +0200
+
 opi-backup (1.0.18) testing; urgency=low
 
   * Added entire sd card area to backup
