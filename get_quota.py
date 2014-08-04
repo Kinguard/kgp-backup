@@ -7,6 +7,8 @@ from OpenSSL import crypto
 import configparser
 import sys
 import argparse
+import subprocess
+import os
 
 AUTH_SERVER        = "auth.openproducts.com"
 AUTH_PATH        = "/"
@@ -14,7 +16,10 @@ AUTH_FILE        = "auth.php"
 DNS_FILE        = "update_dns.php"
 
 SYSINFO            = "/etc/opi/sysinfo.conf"
+BACKUP_TARGET = "/etc/opi/backup_target.conf"
+BACKUP_CONF   = "/usr/share/opi-backup/backup.conf"
 
+MOUNT_SCRIPT = "/usr/share/opi-backup/mount_fs.sh"
 #TODO: more errorchecking
 
 # Constants used on serverside
@@ -178,27 +183,105 @@ if __name__=='__main__':
         print(e)
         sys.exit(1)
 
+
     try:
-        import ssl
-        import http.client
+        fh_targetconf = open(BACKUP_TARGET, encoding="utf_8")
+    except Exception as e:
+        print("Error opening Target file: "+BACKUP_TARGET)
+        print(e)
+        sys.exit(1)
 
-        ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    target_conf = configparser.ConfigParser()
+    try:
+        target_conf.read_file(add_section_header(fh_targetconf, 'target'), source=BACKUP_TARGET)
+        if 'target' not in target_conf:
+            print("Missing parameters in Target file")
+            sys.exit(1)
+        target = target_conf['target']
+        if 'backend' not in target:
+            print("Missing backend in target file")
+            sys.exit(1)
+        backend = target['backend'].strip('"')
 
-        ctx.options |= ssl.OP_NO_SSLv2
-        ctx.verify_mode = ssl.CERT_REQUIRED
+    except Exception as e:
+        print("Error parsing target file")
+        print(e)
+        sys.exit(1)
 
+    if backend == "s3op://":
         try:
-            ctx.load_verify_locations( cafile )
+            import ssl
+            import http.client
+
+            ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+
+            ctx.options |= ssl.OP_NO_SSLv2
+            ctx.verify_mode = ssl.CERT_REQUIRED
+
+            try:
+                ctx.load_verify_locations( cafile )
+            except Exception as e:
+                print("CA file error")
+                print(e)
+                sys.exit(1)
+
+            conn = http.client.HTTPSConnection(AUTH_SERVER, 443, context=ctx)
+
+            response = authenticate(conn, unit_id, fp_pkey)
+        except http.client.HTTPException as e:
+            print(e)
+
+    elif backend == "local://":
+        try:
+            fh_backupconf = open(BACKUP_CONF, encoding="utf_8")
         except Exception as e:
-            print("CA file error")
+            print("Error opening Target file: "+BACKUP_CONF)
             print(e)
             sys.exit(1)
 
-        conn = http.client.HTTPSConnection(AUTH_SERVER, 443, context=ctx)
+        backup_conf = configparser.ConfigParser()
+        try:
+            backup_conf.read_file(add_section_header(fh_backupconf, 'section_backup'), source=BACKUP_TARGET)
+            if 'section_backup' not in backup_conf:
+                print("Missing parameters in backup config file")
+                sys.exit(1)
+            backup = backup_conf['section_backup']
+            if 'backupdisk' not in backup:
+                print("Missing backupdisk in backup config file")
+                sys.exit(1)
+            backupdisk = backup['backupdisk'].strip('"')
+        except Exception as e:
+            print("Error parsing backup config file")
+            print(e)
+            sys.exit(1)
 
-        response = authenticate(conn, unit_id, fp_pkey)
-    except http.client.HTTPException as e:
-        print(e)
+        #Try to mount the disk
+        try:
+            FNULL = open(os.devnull, 'w')
+            retcode = subprocess.call(MOUNT_SCRIPT, stdout=FNULL, stderr=subprocess.STDOUT)
+            #subprocess.call([MOUNT_SCRIPT])
+        except Exception as e:
+            print("Error mounting disk")
+            print(e)
+            sys.exit(1)
+
+        df = subprocess.Popen(["df", "/mnt/usb"], stdout=subprocess.PIPE)
+        output = df.communicate()[0].decode()
+        device, size, used, available, percent, mountpoint = \
+        output.split("\n")[1].split()
+        response = {}
+        response['quota'] = int(size) * 1024
+        response['bytes_used'] = int(used) * 1024
+
+
+    elif backend == "none":
+        print("Backup not enabled, exit")
+        sys.exit(0)
+
+    else:
+        print("Unknown backend, exit")
+        sys.exit(1)
+
 
     if args.type == "sh":
         #print("Output shell format")
@@ -206,6 +289,8 @@ if __name__=='__main__':
             print("%s=%s" % (x,response[x]) )
     else:
         # default print json
-        print(response)
+        #print(response)
+        print(json.dumps(response))
+
 
 
