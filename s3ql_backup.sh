@@ -160,8 +160,7 @@ echo "Expire backups"
 # by default when you install from the source tarball. If you have
 # installed an S3QL package for your distribution, this script *may*
 # be installed, and it *may* also not have the .py ending.
-#${s3ql_contrib}expire_backups.py --use-s3qlrm 1 7 14 31 90 180 360
-${s3ql_contrib}expire_backups.py --reconstruct-state 1 7 14 31 90 180 360
+${s3ql_contrib}expire_backups.py --use-s3qlrm --reconstruct-state 1 7 14 31 90 180 360
 
 echo "Syncing filesystem"
 ${s3ql_path}s3qlctrl flushcache $mountpoint
