@@ -260,19 +260,22 @@ if __name__=='__main__':
         try:
             FNULL = open(os.devnull, 'w')
             retcode = subprocess.call(MOUNT_SCRIPT, stdout=FNULL, stderr=subprocess.STDOUT)
-            #subprocess.call([MOUNT_SCRIPT])
+            if not retcode:
+                df = subprocess.Popen(["df", "/mnt/usb"], stdout=subprocess.PIPE)
+                output = df.communicate()[0].decode()
+                device, size, used, available, percent, mountpoint = \
+                output.split("\n")[1].split()
+                response = {}
+                response['quota'] = int(size) * 1024
+                response['bytes_used'] = int(used) * 1024
+            else:
+                response = {}
+                response['quota'] = 0
+                response['bytes_used'] = 0
         except Exception as e:
             print("Error mounting disk")
             print(e)
             sys.exit(1)
-
-        df = subprocess.Popen(["df", "/mnt/usb"], stdout=subprocess.PIPE)
-        output = df.communicate()[0].decode()
-        device, size, used, available, percent, mountpoint = \
-        output.split("\n")[1].split()
-        response = {}
-        response['quota'] = int(size) * 1024
-        response['bytes_used'] = int(used) * 1024
 
     else:
         print("Unknown backend, exit")

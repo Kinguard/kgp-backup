@@ -12,6 +12,20 @@ else
 fi
 #set -x
 
+# find out if there is a mounted backend
+curr_backend=$(sed -n "s%\(\w*\)://.*\s${mountpoint}.*%\1% p" /proc/mounts)
+echo "Current backend: $curr_backend"
+if [ ! -z $curr_backend ]; then
+	echo "Existing backend: $curr_backend"
+	if [[ $backend != *$curr_backend* ]] ; then
+		echo "Backend changed, unmount current"
+		fusermount -u ${mountpoint}
+	else
+		echo "Current backend valid"
+	fi
+else
+	echo "No current backend"
+fi
 
 # Backup destination  (storage url)
 echo "Backend: $backend"
