@@ -31,7 +31,8 @@ if [ -e $target_file ]; then
 		sd_card=$(sed -n "s%\(${def_sdcard}\)\s${def_opiloc}.*%\1% p" /proc/mounts) # get sd-card device
 		if [ -z $sd_card ] || [ ! -b $sd_card ]; then
 			# the backend must be defined and the sd-card device must exist and be mounted
-			report_error "Backup aborted, no sd card found or sd card is not unlocked"
+			echo "Backup aborted, no sd card found or sd card is not unlocked"
+			exit 1
 		else
 			echo "Starting backup"
 		fi

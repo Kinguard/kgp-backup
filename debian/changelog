@@ -1,3 +1,10 @@
+opi-backup (1.0.23) vili; urgency=low
+
+  * A locked SD card that prohibits the backup is not to be 
+    indicated as a backup failure
+
+ -- PA Nilsson <pa@openproducts.se>  Mon, 25 Aug 2014 13:35:30 +0200
+
 opi-backup (1.0.22) vili; urgency=low
 
   * Improved handling of local disk quota
