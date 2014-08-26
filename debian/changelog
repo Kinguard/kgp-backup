@@ -1,3 +1,9 @@
+opi-backup (1.0.24) vili; urgency=low
+
+  * Removed output from script not to trigger cron mail
+
+ -- PA Nilsson <pa@openproducts.se>  Tue, 26 Aug 2014 15:13:05 +0200
+
 opi-backup (1.0.23) vili; urgency=low
 
   * A locked SD card that prohibits the backup is not to be 

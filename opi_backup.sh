@@ -8,12 +8,12 @@ def_opiloc="/var/opi"
 error_log="${logdir}/backup.log"
 alert_file="${logdir}/alert"
 
-if [[ ! -z $(pgrep 's3ql_backup.sh') ]] ; then
-	echo "Backup already running, exiting"
-	exit 0
-fi
-
-echo "none" > "/sys/class/leds/opi:red:usr3/trigger"
+verbose=$1
+function report {
+	if [ ! -z $verbose ] && [ $verbose == '-v' ] ; then
+		echo $1
+	fi
+}
 
 function report_error {
 	echo "$1 (Possibly more informaton in log file: $error_log)" > $alert_file
@@ -22,6 +22,14 @@ function report_error {
 	echo "default-on" > "/sys/class/leds/opi:green:usr1/trigger"
 	exit 1
 }
+
+
+if [[ ! -z $(pgrep 's3ql_backup.sh') ]] ; then
+	echo "Backup already running, exiting"
+	exit 0
+fi
+
+echo "none" > "/sys/class/leds/opi:red:usr3/trigger"
 
 if [ -e $target_file ]; then
 	source $target_file # reads which backend to use
@@ -34,11 +42,11 @@ if [ -e $target_file ]; then
 			echo "Backup aborted, no sd card found or sd card is not unlocked"
 			exit 1
 		else
-			echo "Starting backup"
+			report "Starting backup"
 		fi
 	else
 		if [ $backend == 'none' ] ; then
-			echo "Backup not enabled"
+			report "Backup not enabled"
 			exit 0
 		else 
 			report_error "Unknown backend: $backend"
