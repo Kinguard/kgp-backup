@@ -1,3 +1,10 @@
+opi-backup (1.0.25) vili; urgency=low
+
+  * Added support to override config files with command line arguments.
+  * Added umount script
+
+ -- PA Nilsson <pa@openproducts.se>  Thu, 29 Jan 2015 20:19:06 +0100
+
 opi-backup (1.0.24) vili; urgency=low
 
   * Removed output from script not to trigger cron mail

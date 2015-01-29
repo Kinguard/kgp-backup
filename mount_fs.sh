@@ -12,6 +12,34 @@ else
 fi
 #set -x
 
+# A POSIX variable
+OPTIND=1         # Reset in case getopts has been used previously in the shell.
+
+# Initialize our own variables:
+restore=0
+
+while getopts "b:a:m:r" opt; do
+    case "$opt" in
+    a)  auth_file=$OPTARG
+        ;;
+    b)  backend=$OPTARG
+        ;;
+    m)  mountpoint=$OPTARG
+	;;
+    r)  restore=1
+	;;
+    ?)	exit 1
+	;;
+    esac
+done
+
+shift $((OPTIND-1))
+
+[ "$1" = "--" ] && shift
+
+#echo "auth_file=$auth_file, backend=$backend, mountpoint='$mountpoint' Leftovers: $@"
+
+#exit 1
 # find out if there is a mounted backend
 curr_backend=$(sed -n "s%\(\w*\)://.*\s${mountpoint}.*%\1% p" /proc/mounts)
 echo "Current backend: $curr_backend"
@@ -115,6 +143,10 @@ if [ $fs_mounted -eq 0 ]; then
 	#echo "FSCK result: $fsck_result, exit code $?"
 	if [[ $fsck_result == *'No S3QL file system found'* ]] && [[ $? -eq 0 ]]
 	then
+		if [ $restore -eq 1 ]; then
+			echo "No filesystem found on device"
+			exit 1
+		fi
 		echo "Creating filesystem";
 		${s3ql_path}mkfs.s3ql --ssl-ca-path ${ca_path} --cachedir ${s3ql_cachedir} --authfile ${auth_file}  "$storage_url"
 		echo "Finished creating filesystem"
