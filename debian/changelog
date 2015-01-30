@@ -1,3 +1,9 @@
+opi-backup (1.0.26) vili; urgency=medium
+
+  * Add umount script to package
+
+ -- Tor Krill <tor@openproducts.se>  Fri, 30 Jan 2015 11:07:23 +0100
+
 opi-backup (1.0.25) vili; urgency=low
 
   * Added support to override config files with command line arguments.
