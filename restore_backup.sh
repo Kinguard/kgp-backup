@@ -10,7 +10,7 @@ then
 fi 
 
 RESTOREPATH=$1
-MYSQLCONF=/root/my.cnf
+MYSQLCONF=/usr/share/opi-backup/my.cnf
 
 echo "Restore from $RESTOREPATH"
 
