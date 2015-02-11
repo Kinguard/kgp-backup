@@ -17,7 +17,7 @@ echo "Restore from $RESTOREPATH"
 function mp()
 { 
   #echo "Check if mysql is running"
-  mysqladmin --defaults-file=/root/my.cnf -s ping
+  mysqladmin --defaults-file=$MYSQLCONF -s ping
 }
 
 echo "Start temporary mysql"
