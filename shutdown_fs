@@ -1,0 +1,35 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          shutdownfs
+# Required-Start:
+# Required-Stop:     
+# Default-Start:
+# Default-Stop:      0 1 2 6
+# Short-Description: umount s3ql backup file system
+# Description:
+### END INIT INFO
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+
+do_stop () {
+	/usr/share/opi-backup/umount_fs.sh
+}
+
+case "$1" in
+  start)
+	# No-op
+	;;
+  restart|reload|force-reload)
+	echo "Error: argument '$1' not supported" >&2
+	exit 3
+	;;
+  stop)
+	do_stop
+	;;
+  *)
+	echo "Usage: $0 start|stop" >&2
+	exit 3
+	;;
+esac
+
+:

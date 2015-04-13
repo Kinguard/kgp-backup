@@ -30,6 +30,11 @@ case "$1" in
 	then
 		ln -s /usr/share/opi-backup/opi_backup.sh /etc/cron.daily/opi_backup
 	fi
+	if [ ! -e /etc/opi-control/completed/mount_backup ]
+	then
+		ln -s /usr/share/opi-backup/mount_fs.sh /etc/opi-control/completed/mount_backup
+	fi
+	
 	if [ ! -e /etc/opi/backup_target.conf ]
 	then
 		echo 'backend="none"' > /etc/opi/backup_target.conf
@@ -45,6 +50,7 @@ case "$1" in
 	chown -R root:root /usr/share/opi-backup/
 	chown root:root /etc/opi/backup_target.conf
 
+	update-rc.d shutdown_fs stop 20 0 1 2 6 .
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

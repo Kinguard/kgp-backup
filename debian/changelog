@@ -1,3 +1,11 @@
+opi-backup (1.1) vili; urgency=low
+
+  * Mounting fs on opi-control "complete"
+  * Added config files to backup
+  * Addes status file to backup
+
+ -- PA Nilsson <pa@openproducts.se>  Mon, 13 Apr 2015 12:20:05 +0200
+
 opi-backup (1.0.25) vili; urgency=low
 
   * Added support to override config files with command line arguments.

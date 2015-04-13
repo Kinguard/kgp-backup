@@ -7,6 +7,7 @@ source mount_fs.sh
 
 new_backup=`date "+%Y-%m-%d_%H:%M:%S"`
 
+#set -x
 
 if [ ! -d $logdir ]; then
 	mkdir $logdir
@@ -93,6 +94,23 @@ else
 	# userdata dir will be created by rsync below
 fi
 
+script_version=$(dpkg -s opi-backup | sed -n 's/Version:\s*\([0-9\.]*\)/\1/p')
+script_version=1.2
+echo $script_version
+nbr_dots=$(grep -o "\." <<< "$script_version" | wc -l)
+if [ $nbr_dots -gt 1 ]; then
+	echo "Only one level of minor number is supported"
+	exit 1
+	
+else
+	major=$(echo $script_version | sed -n 's/\([0-9]*\)\.[0-9]*/\1/p')
+	minor=$(echo $script_version | sed -n 's/[0-9]*\.\([0-9]\)*/\1/p')
+	version=$((major*1000+$((minor)) ))
+	echo "Version: $version"
+fi
+
+# write temporary "fail" status msg
+echo '{"date":"'$new_backup'", "status":"fail", "script_version":"'$version'"}' > ./${new_backup}/status.json
 
 
 # ..and update the copy
@@ -108,7 +126,12 @@ echo "Copy system files"
 rsync -aHAXx --delete-during --delete-excluded --partial -v \
     --exclude "owncloud/data/" \
     --exclude "mysql" \
-    "/var/opi" "./${new_backup}/${systemdir}"
+    "/var/opi" \
+    "/usr/share/owncloud/config/config.php" \
+    "/etc/postfix/main.cf" "/etc/mailname" \
+    "/etc/shadow" \
+    "/etc/opi" \
+    "./${new_backup}/${systemdir}"
 
 echo "Dump SQL database"
 /usr/bin/mysqldump -uroot -p${mysql_pwd} --all-databases > "./${new_backup}/${systemdir}/opi.sql"
@@ -153,6 +176,8 @@ echo "Backup finished without errors" > "${logdir}/complete/$new_backup"
 echo "Backup finished"
 
 cd "$mountpoint"
+# write "success" status msg
+echo '{"date":"'$new_backup'", "status":"ok", "script_version":"'$version'"}' > ./${new_backup}/status.json
 echo "Expire backups"
 # Expire old backups
 
