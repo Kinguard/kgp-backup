@@ -1,3 +1,9 @@
+opi-backup (1.2) vili; urgency=low
+
+  * mount_fs now terminates on invalid backends without running fsck
+
+ -- PA Nilsson <pa@openproducts.se>  Tue, 14 Apr 2015 07:59:35 +0200
+
 opi-backup (1.1) vili; urgency=low
 
   * Mounting fs on opi-control "complete"

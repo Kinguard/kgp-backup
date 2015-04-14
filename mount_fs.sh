@@ -42,7 +42,6 @@ shift $((OPTIND-1))
 #exit 1
 # find out if there is a mounted backend
 curr_backend=$(sed -n "s%\(\w*\)://.*\s${mountpoint}.*%\1% p" /proc/mounts)
-echo "Current backend: $curr_backend"
 if [ ! -z $curr_backend ]; then
 	echo "Existing backend: $curr_backend"
 	if [[ $backend != *$curr_backend* ]] ; then
@@ -56,7 +55,7 @@ else
 fi
 
 # Backup destination  (storage url)
-echo "Backend: $backend"
+#echo "Backend: $backend"
 if [[ $backend == *local* ]]; then
 	device=$(sed -n "s%\(/dev/sd\w*\)\s${backupdisk}.*%\1% p" /proc/mounts)
 	echo "Device $device"
@@ -88,8 +87,11 @@ if [[ $backend == *local* ]]; then
 			fi
 		done
 	fi
-else
+elif [[ $backend == *s3op* ]]; then
 	storage_url="${backend}${storage_server}/${unit_id}"
+else
+	echo "No valid backend"
+	exit 1
 fi
 if [ -z $storage_url ]; then
 	echo "No suitable device found for backup target, exiting"
