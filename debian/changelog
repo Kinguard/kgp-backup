@@ -12,6 +12,24 @@ opi-backup (1.1) vili; urgency=low
 
  -- PA Nilsson <pa@openproducts.se>  Mon, 13 Apr 2015 12:20:05 +0200
 
+opi-backup (1.0.28) vili; urgency=medium
+
+  * Use parameter for defaults file in ping
+
+ -- Tor Krill <tor@openproducts.se>  Wed, 11 Feb 2015 12:16:41 +0100
+
+opi-backup (1.0.27) vili; urgency=medium
+
+  * Initial add of restore functionality
+
+ -- Tor Krill <tor@openproducts.se>  Wed, 11 Feb 2015 07:31:27 +0100
+
+opi-backup (1.0.26) vili; urgency=medium
+
+  * Add umount script to package
+
+ -- Tor Krill <tor@openproducts.se>  Fri, 30 Jan 2015 11:07:23 +0100
+
 opi-backup (1.0.25) vili; urgency=low
 
   * Added support to override config files with command line arguments.
