@@ -30,9 +30,9 @@ case "$1" in
 	then
 		ln -s /usr/share/opi-backup/opi_backup.sh /etc/cron.daily/opi_backup
 	fi
-	if [ ! -e /etc/opi-control/completed/mount_backup ]
+	if [ ! -e /etc/opi-control/completed/mount-backup ]
 	then
-		ln -s /usr/share/opi-backup/mount_fs.sh /etc/opi-control/completed/mount_backup
+		ln -s /usr/share/opi-backup/mount_fs.sh /etc/opi-control/completed/mount-backup
 	fi
 	
 	if [ ! -e /etc/opi/backup_target.conf ]

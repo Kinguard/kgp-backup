@@ -1,7 +1,7 @@
 #!/bin/bash
 
 cd $(dirname "${BASH_SOURCE[0]}")
-source backup.conf
+source /usr/share/opi-backup/backup.conf
 source /etc/opi/sysinfo.conf
 
 if [ -e $target_file ]; then
