@@ -32,7 +32,7 @@ case "$1" in
 	fi
 	if [ ! -e /etc/opi-control/completed/mount-backup ]
 	then
-		ln -s /usr/share/opi-backup/mount_fs.sh /etc/opi-control/completed/mount-backup
+		ln -s /usr/share/opi-backup/link_backup.sh /etc/opi-control/completed/mount-backup
 	fi
 	
 	if [ ! -e /etc/opi/backup_target.conf ]

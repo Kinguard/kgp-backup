@@ -30,6 +30,12 @@ case "$1" in
 		rm -f /etc/cron.daily/opi_backup
 	fi
 
+	if [ -e /etc/opi-control/completed/mount-backup ]
+	then
+		rm -f /etc/opi-control/completed/mount-backup
+	fi
+
+
 	if [ -e /etc/opi/backup_target.conf ]; then
 		rm /etc/opi/backup_target.conf
 	fi

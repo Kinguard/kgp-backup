@@ -1,5 +1,5 @@
 #!/bin/bash
-source ./mount_fs.sh
+source /usr/share/opi-backup/mount_fs.sh
 
 
 # Find the existing backup dates
