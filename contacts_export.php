@@ -36,8 +36,6 @@ foreach( $users as $user )
 
 	$books = $app->getAddressBooksForUser();
 
-
-	$calendars = OC_Calendar_Calendar::allCalendars($user);
 	foreach( $books as $book )
 	{
 		$filename = $dir . '/' . str_replace(' ', '_', $book->getDisplayName()) . '.vcf';
