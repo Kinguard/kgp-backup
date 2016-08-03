@@ -8,7 +8,7 @@ OCP\App::checkAppEnabled('calendar');
 echo "Calendar enabled\n";
 $outpath = ".";
 
-if( count( $argv ) > 2 )
+if( count( $argv ) >= 2 )
 {
 	$outpath = $argv[1];
 }
@@ -33,7 +33,7 @@ foreach( $users as $user )
 		$filename = $dir . '/' . str_replace(' ', '-', $calendar['displayname']) . '.ics';
 		echo "File: $filename\n";
 		$caldata = OC_Calendar_Export::export($calendar["id"], OC_Calendar_Export::CALENDAR);
-		file_put_contents( $filename, $caldata); 
+		file_put_contents( $filename, $caldata);
 	}
 }
 
