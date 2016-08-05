@@ -7,6 +7,11 @@ set_time_limit(0);
 
 require_once "lib/base.php";
 
+if (!OC::$CLI) {
+	echo "This script can be run from the command line only" . PHP_EOL;
+	exit(0);
+}
+
 OCP\App::checkAppEnabled('contacts');
 
 echo "App enabled\n";
