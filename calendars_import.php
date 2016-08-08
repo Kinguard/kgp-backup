@@ -22,6 +22,9 @@ echo "Using inpath: $inpath\n";
 
 $dirs = glob($inpath ."/*", GLOB_ONLYDIR | GLOB_NOSORT);
 
+$colors = OC_Calendar_Calendar::getCalendarColorOptions();
+$colamt = count( $colors );
+
 foreach( $dirs as $dir )
 {
 	$user = pathinfo( $dir, PATHINFO_BASENAME );
@@ -29,6 +32,8 @@ foreach( $dirs as $dir )
 	OC_User::setUserId($user);
 
 	$calendars = glob( $dir . "/calendars/*", GLOB_NOSORT );
+
+	$colind = 1;
 
 	foreach( $calendars as $calendar )
 	{
@@ -40,7 +45,8 @@ foreach( $dirs as $dir )
 		$name = pathinfo( $calendar, PATHINFO_BASENAME);
 		$calname = "Imported_" . pathinfo($name,PATHINFO_FILENAME);
 
-		$id = OC_Calendar_Calendar::addCalendar($user, $name);
+		$id = OC_Calendar_Calendar::addCalendar($user, $calname, 'VEVENT,VTODO,VJOURNAL',
+				null, 0, $colors[$colind++ % $colamt] );
 
 		$ical = file_get_contents( $calendar );
 
