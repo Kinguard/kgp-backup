@@ -29,7 +29,7 @@ foreach( $users as $user )
 {
 	echo "User: $user\n";
 	// Ignore errors for now
-	$dir = $outpath . "/" . $user . "/contacts";
+	$dir = $outpath . "/" . $user . "/files/sysbackup/contacts";
 	mkdir( $dir , 0700, true);
 	if( ! is_dir( $dir ) )
 	{

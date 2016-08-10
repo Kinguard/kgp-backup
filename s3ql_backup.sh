@@ -122,6 +122,10 @@ rsync -aHAXx --delete-during --delete-excluded --partial -v \
     --exclude "*/files/backup" \
     "${owncloud_dir}" "./${new_backup}/${userdata}"
 
+echo "Copy calendars and contacts"
+php /usr/share/owncloud/calendars_export.php "./${new_backup}/${userdata}"
+php /usr/share/owncloud/contacts_export.php "./${new_backup}/${userdata}"
+
 echo "Copy system files"
 rsync -aHAXx --delete-during --delete-excluded --partial -v \
     --exclude "owncloud/data/" \

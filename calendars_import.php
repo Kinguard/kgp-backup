@@ -31,7 +31,7 @@ foreach( $dirs as $dir )
 	
 	OC_User::setUserId($user);
 
-	$calendars = glob( $dir . "/calendars/*", GLOB_NOSORT );
+	$calendars = glob( $dir . "/files/sysbackup/calendars/*", GLOB_NOSORT );
 
 	$colind = 1;
 

@@ -135,7 +135,7 @@ foreach( $dirs as $dir )
 		break;
 	}
 
-	$books = glob( $dir . "/contacts/*", GLOB_NOSORT );
+	$books = glob( $dir . "/files/sysbackup/contacts/*", GLOB_NOSORT );
 
 	foreach( $books as $book )
 	{
