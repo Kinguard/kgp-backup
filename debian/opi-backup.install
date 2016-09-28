@@ -5,6 +5,10 @@ s3ql_backup.sh  /usr/share/opi-backup
 opi_backup.sh   /usr/share/opi-backup
 get_quota.py    /usr/share/opi-backup
 link_backup.sh  /usr/share/opi-backup
+calendars_export.php	/usr/share/opi-backup
+calendars_import.php	/usr/share/opi-backup
+contacts_export.php	/usr/share/opi-backup
+contacts_import.php	/usr/share/opi-backup
 shutdown_fs    /etc/init.d
 umount_fs.sh	/usr/share/opi-backup
 restore_backup.sh	/usr/share/opi-backup
