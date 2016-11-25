@@ -95,7 +95,6 @@ else
 fi
 
 script_version=$(dpkg -s opi-backup | sed -n 's/Version:\s*\([0-9\.]*\)/\1/p')
-script_version=1.2
 echo $script_version
 nbr_dots=$(grep -o "\." <<< "$script_version" | wc -l)
 if [ $nbr_dots -gt 1 ]; then
@@ -116,11 +115,14 @@ echo '{"date":"'$new_backup'", "status":"fail", "script_version":"'$version'"}' 
 # ..and update the copy
 echo "Copy user files"
 
+set +e
 rsync -aHAXx --delete-during --delete-excluded --partial -v \
     --exclude "*/cache/" \
     --exclude "*/gallery/" \
     --exclude "*/files/backup" \
     "${owncloud_dir}" "./${new_backup}/${userdata}"
+
+rsync_user=$?
 
 echo "Copy calendars and contacts"
 php /usr/share/owncloud/calendars_export.php "./${new_backup}/${userdata}"
@@ -136,6 +138,20 @@ rsync -aHAXx --delete-during --delete-excluded --partial -v \
     "/etc/shadow" \
     "/etc/opi" \
     "./${new_backup}/${systemdir}"
+
+rsync_system=$?
+
+if [ $rsync_user -ne 0 ] || [ $rsync_system -ne 0 ]; then
+	if [ $rsync_user -eq 24 ] || [ $rsync_system -eq 24 ]; then
+		# this is the case when files have dissappeard, that is ok since user files can do that, epecially mail
+		rsync_retval=0
+		echo "rsync lost some files on the way"
+	else
+		let "rsync_retval=$rsync_user+$rsync_system"		#return something that maybe can be useful...
+		echo "RSYNC RetVal: $rsync_retval"
+	fi
+fi
+set -e
 
 echo "Dump SQL database"
 /usr/bin/mysqldump -uroot -p${mysql_pwd} --all-databases > "./${new_backup}/${systemdir}/opi.sql"
@@ -194,3 +210,4 @@ ${s3ql_contrib}expire_backups.py --use-s3qlrm --reconstruct-state 1 7 14 31 90 1
 echo "Syncing filesystem"
 ${s3ql_path}s3qlctrl flushcache $mountpoint
 
+exit $rsync_retval

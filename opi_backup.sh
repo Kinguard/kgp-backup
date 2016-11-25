@@ -18,6 +18,10 @@ function report {
 function report_error {
 	echo "$1 (Possibly more informaton in log file: $error_log)" > $alert_file
 	echo "$1 (Possibly more informaton in log file: $error_log)"
+
+	echo "-------   Content of Logfile $error_log  ------------------"
+	cat $error_log
+	
 	echo "heartbeat" > "/sys/class/leds/opi:red:usr3/trigger"
 	echo "default-on" > "/sys/class/leds/opi:green:usr1/trigger"
 	exit 1
