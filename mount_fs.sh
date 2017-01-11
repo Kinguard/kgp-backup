@@ -7,8 +7,8 @@ source /etc/opi/sysinfo.conf
 if [ -e $target_file ]; then
 	source  $target_file
 else
-	echo "Using default backend"
-	backend="s3op://" # set default
+	echo "Missing target file or OPI is still locked"
+	exit 1
 fi
 #set -x
 
@@ -87,8 +87,20 @@ if [[ $backend == *local* ]]; then
 			fi
 		done
 	fi
-elif [[ $backend == *s3op* ]]; then
+elif [[ $backend == *s3op://* ]]; then
+	echo "Using: $backend"
 	storage_url="${backend}${storage_server}/${unit_id}"
+	CA="--ssl-ca-path ${ca_path}"
+
+elif [[ $backend == *s3://* ]]; then
+	echo "Using: $backend"
+	if [ -z "$bucket" ]; then
+		echo "Missing bucket"
+		exit 1
+	else		
+		storage_url="${backend}${bucket}/"
+		CA=""
+	fi
 else
 	echo "No valid backend"
 	exit 1
@@ -140,7 +152,7 @@ if [ $fs_mounted -eq 0 ]; then
 	# Recover cache if e.g. system was shut down while fs was mounted
 	echo "Start fsck"
 	set +e
-	fsck_result=$(${s3ql_path}fsck.s3ql --ssl-ca-path ${ca_path} --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  "$storage_url")
+	fsck_result=$(${s3ql_path}fsck.s3ql ${CA} --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  "$storage_url")
 	set -e
 	#echo "FSCK result: $fsck_result, exit code $?"
 	if [[ $fsck_result == *'No S3QL file system found'* ]] && [[ $? -eq 0 ]]
@@ -149,12 +161,12 @@ if [ $fs_mounted -eq 0 ]; then
 			echo "No filesystem found on device"
 			exit 1
 		fi
-		echo "Creating filesystem";
-		${s3ql_path}mkfs.s3ql --ssl-ca-path ${ca_path} --cachedir ${s3ql_cachedir} --authfile ${auth_file}  "$storage_url"
+		echo "Creating filesystem"
+		${s3ql_path}mkfs.s3ql ${CA} --cachedir ${s3ql_cachedir} --authfile ${auth_file}  "$storage_url"
 		echo "Finished creating filesystem"
 	fi
 	# Not mounted, then mount file system
 	echo "Mount filesystem"
-	${s3ql_path}mount.s3ql --allow-other --ssl-ca-path ${ca_path} --quiet --cachedir ${s3ql_cachedir} --cachesize ${s3ql_cachesize} --log $log_file --authfile ${auth_file} "$storage_url" "$mountpoint"
+	${s3ql_path}mount.s3ql --allow-other ${CA} --quiet --cachedir ${s3ql_cachedir} --cachesize ${s3ql_cachesize} --log $log_file --authfile ${auth_file} "$storage_url" "$mountpoint"
 fi
 

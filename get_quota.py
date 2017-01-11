@@ -16,7 +16,7 @@ AUTH_FILE        = "auth.php"
 DNS_FILE        = "update_dns.php"
 
 SYSINFO            = "/etc/opi/sysinfo.conf"
-BACKUP_TARGET = "/etc/opi/backup_target.conf"
+BACKUP_TARGET = "/var/opi/backup_target.conf"
 BACKUP_CONF   = "/usr/share/opi-backup/backup.conf"
 
 MOUNT_SCRIPT = "/usr/share/opi-backup/mount_fs.sh"
@@ -261,22 +261,77 @@ if __name__=='__main__':
             FNULL = open(os.devnull, 'w')
             retcode = subprocess.call(MOUNT_SCRIPT, stdout=FNULL, stderr=subprocess.STDOUT)
             if not retcode:
-                df = subprocess.Popen(["df", "/mnt/usb"], stdout=subprocess.PIPE)
+                df = subprocess.Popen(["df", backupdisk], stdout=subprocess.PIPE)
                 output = df.communicate()[0].decode()
                 device, size, used, available, percent, mountpoint = \
                 output.split("\n")[1].split()
                 response = {}
                 response['quota'] = int(size) * 1024
                 response['bytes_used'] = int(used) * 1024
+                response['mounted'] = True
             else:
                 response = {}
                 response['quota'] = 0
                 response['bytes_used'] = 0
+                response['mounted'] = False
         except Exception as e:
             print("Error mounting disk")
             print(e)
             sys.exit(1)
 
+    elif backend == "s3://":
+        try:
+            fh_backupconf = open(BACKUP_CONF, encoding="utf_8")
+        except Exception as e:
+            print("Error opening Target file: "+BACKUP_CONF)
+            print(e)
+            sys.exit(1)
+
+        backup_conf = configparser.ConfigParser()
+        try:
+            backup_conf.read_file(add_section_header(fh_backupconf, 'section_backup'), source=BACKUP_TARGET)
+            if 'section_backup' not in backup_conf:
+                print("Missing parameters in backup config file")
+                sys.exit(1)
+            backup = backup_conf['section_backup']
+            if 'backup_mntpoint' not in backup:
+                print("Missing backup_mntpoint in backup config file")
+                sys.exit(1)
+            mountpoint = backup['backup_mntpoint'].strip('"')
+        except Exception as e:
+            print("Error parsing backup config file")
+            print(e)
+            sys.exit(1)
+
+        try:
+            if not os.path.ismount(mountpoint):
+                #Try to mount the disk
+                try:
+                    print("Trying to mount backend")
+                    FNULL = open(os.devnull, 'w')
+                    retcode = subprocess.call(MOUNT_SCRIPT, stdout=FNULL, stderr=subprocess.STDOUT)
+                    if retcode:
+                        print("Error mounting S3 backend")    
+                        sys.exit(1)
+                except Exception as e:
+                    print("Error mounting S3 backend")
+                    print(e)
+                    sys.exit(1)
+
+            df = subprocess.Popen(["df", mountpoint], stdout=subprocess.PIPE)
+            output = df.communicate()[0].decode()
+            device, size, used, available, percent, mountpoint = \
+            output.split("\n")[1].split()
+            response = {}
+            response['quota'] = 0
+            response['bytes_used'] = int(used) * 1024
+            response['mounted'] = True
+        except:
+            print("Error getting quota for s3 backend")
+            print(e)
+            sys.exit(1)
+            
+            
     else:
         print("Unknown backend, exit")
         sys.exit(1)

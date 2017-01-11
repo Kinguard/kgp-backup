@@ -38,7 +38,8 @@ echo "none" > "/sys/class/leds/opi:red:usr3/trigger"
 if [ -e $target_file ]; then
 	source $target_file # reads which backend to use
 	#validate backend
-	if [ $backend == 'local://' ] || [ $backend == 's3op://' ]; then 	
+	echo "Backend $backend"
+	if [ $backend == 'local://' ] || [ $backend == 's3op://' ] || [[ $backend == "s3://" ]]; then 	
 	# valid backend
 		sd_card=$(sed -n "s%\(${def_sdcard}\)\s${def_opiloc}.*%\1% p" /proc/mounts) # get sd-card device
 		if [ -z $sd_card ] || [ ! -b $sd_card ]; then
