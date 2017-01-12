@@ -140,6 +140,28 @@ def add_section_header(properties_file, header_name):
     for line in properties_file:
         yield line
 
+def get_config(configfile):
+	
+    config = []
+    try:
+        fh_backupconf = open(configfile, encoding="utf_8")
+    except Exception as e:
+        print("Error opening file: "+configfile)
+        print(e)
+        sys.exit(1)
+
+    backup_conf = configparser.ConfigParser()
+    try:
+        backup_conf.read_file(add_section_header(fh_backupconf, 'dummy_header'), source=configfile)  # add a header for
+        t_config = backup_conf['dummy_header']
+        config = {}
+        for param in t_config:	
+            config[param] = t_config[param].strip('"')
+        return config
+    except Exception as e:
+        print("Error parsing backup config file: " + configfile)
+        print(e)
+        sys.exit(1)
 
 
 ### -------------- MAIN ---------------
@@ -157,56 +179,36 @@ if __name__=='__main__':
         print(e)
         sys.exit(1)
 
-    sysconf = configparser.ConfigParser()
-    # There are no sections in our ini files, so add one on the fly.
-    try:
-        sysconf.read_file(add_section_header(fh_sysconf, 'sysinfo'), source=SYSINFO)
-        if 'sysinfo' not in sysconf:
-            print("Missing parameters in sysinfo")
-            sys.exit(1)
-        sysinfo = sysconf['sysinfo']
-        if 'unit_id' not in sysinfo:
-            print("Missing parameters in sysinfo")
-            sys.exit(1)
-        unit_id = sysinfo['unit_id'].strip('"')
-        if 'ca_path' not in sysinfo:
-            print("Missing parameters in sysinfo")
-            sys.exit(1)
-        cafile = sysinfo['ca_path'].strip('"')
-        if 'sys_key' not in sysinfo:
-            print("Missing parameters in sysinfo")
-            sys.exit(1)
-        fp_pkey = sysinfo['sys_key'].strip('"')
+    sysinfo = get_config(SYSINFO)
 
-    except Exception as e:
-        print("Error parsing sysconfig")
-        print(e)
+    if 'unit_id' not in sysinfo:
+        print("Missing parameters in sysinfo")
         sys.exit(1)
+    unit_id = sysinfo['unit_id'].strip('"')
 
-
-    try:
-        fh_targetconf = open(BACKUP_TARGET, encoding="utf_8")
-    except Exception as e:
-        print("Error opening Target file: "+BACKUP_TARGET)
-        print(e)
+    if 'ca_path' not in sysinfo:
+        print("Missing parameters in sysinfo")
         sys.exit(1)
+    cafile = sysinfo['ca_path'].strip('"')
 
-    target_conf = configparser.ConfigParser()
-    try:
-        target_conf.read_file(add_section_header(fh_targetconf, 'target'), source=BACKUP_TARGET)
-        if 'target' not in target_conf:
-            print("Missing parameters in Target file")
-            sys.exit(1)
-        target = target_conf['target']
-        if 'backend' not in target:
-            print("Missing backend in target file")
-            sys.exit(1)
-        backend = target['backend'].strip('"')
-
-    except Exception as e:
-        print("Error parsing target file")
-        print(e)
+    if 'sys_key' not in sysinfo:
+        print("Missing parameters in sysinfo")
         sys.exit(1)
+    fp_pkey = sysinfo['sys_key'].strip('"')
+
+
+    backup_config = get_config(BACKUP_CONF)
+
+    if 'target_file' not in backup_config:
+        print("Missing parameters in backup config")
+        sys.exit(1)
+	
+    target_config = get_config(backup_config['target_file'])
+
+    if 'backend' not in target_config:
+        print("Missing backend in target file")
+        sys.exit(1)
+    backend = target_config['backend']
 
     if (backend == "s3op://") or (backend == "none"):
         #report server quota even if service is not active.
@@ -233,35 +235,17 @@ if __name__=='__main__':
             print(e)
 
     elif backend == "local://":
-        try:
-            fh_backupconf = open(BACKUP_CONF, encoding="utf_8")
-        except Exception as e:
-            print("Error opening Target file: "+BACKUP_CONF)
-            print(e)
+    	
+        if 'backupdisk' not in backup_config:
+            print("Missing backupdisk in backup config file")
             sys.exit(1)
-
-        backup_conf = configparser.ConfigParser()
-        try:
-            backup_conf.read_file(add_section_header(fh_backupconf, 'section_backup'), source=BACKUP_TARGET)
-            if 'section_backup' not in backup_conf:
-                print("Missing parameters in backup config file")
-                sys.exit(1)
-            backup = backup_conf['section_backup']
-            if 'backupdisk' not in backup:
-                print("Missing backupdisk in backup config file")
-                sys.exit(1)
-            backupdisk = backup['backupdisk'].strip('"')
-        except Exception as e:
-            print("Error parsing backup config file")
-            print(e)
-            sys.exit(1)
-
+    	
         #Try to mount the disk
         try:
             FNULL = open(os.devnull, 'w')
             retcode = subprocess.call(MOUNT_SCRIPT, stdout=FNULL, stderr=subprocess.STDOUT)
             if not retcode:
-                df = subprocess.Popen(["df", backupdisk], stdout=subprocess.PIPE)
+                df = subprocess.Popen(["df", backup_config['backupdisk']], stdout=subprocess.PIPE)
                 output = df.communicate()[0].decode()
                 device, size, used, available, percent, mountpoint = \
                 output.split("\n")[1].split()
@@ -280,28 +264,11 @@ if __name__=='__main__':
             sys.exit(1)
 
     elif backend == "s3://":
-        try:
-            fh_backupconf = open(BACKUP_CONF, encoding="utf_8")
-        except Exception as e:
-            print("Error opening Target file: "+BACKUP_CONF)
-            print(e)
-            sys.exit(1)
 
-        backup_conf = configparser.ConfigParser()
-        try:
-            backup_conf.read_file(add_section_header(fh_backupconf, 'section_backup'), source=BACKUP_TARGET)
-            if 'section_backup' not in backup_conf:
-                print("Missing parameters in backup config file")
-                sys.exit(1)
-            backup = backup_conf['section_backup']
-            if 'backup_mntpoint' not in backup:
-                print("Missing backup_mntpoint in backup config file")
-                sys.exit(1)
-            mountpoint = backup['backup_mntpoint'].strip('"')
-        except Exception as e:
-            print("Error parsing backup config file")
-            print(e)
+        if 'backup_mntpoint' not in backup_config:
+            print("Missing backup_mntpoint in backup config file")
             sys.exit(1)
+        mountpoint = backup_config['backup_mntpoint']
 
         try:
             if not os.path.ismount(mountpoint):
