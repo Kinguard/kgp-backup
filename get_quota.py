@@ -56,7 +56,7 @@ def sendsignedchallenge(conn, unit_id, fp_pkey, challenge):
     sys_status = {}
     sys_status['Code'] = r.status
     if r.status not in ( 200, 403):
-        #print("Wrong status %d"%r.status)
+        #dprint("Wrong status %d"%r.status)
         sys_status['status'] = False
         return sys_status
 
@@ -65,7 +65,7 @@ def sendsignedchallenge(conn, unit_id, fp_pkey, challenge):
 
     if r.status == 200:
         if "token" not in rp:
-            #print("Unexpected server response, no token %s" % rp)
+            #dprint("Unexpected server response, no token %s" % rp)
             sys_status['status'] = False
             sys_status['message']="Access Denied, no token received"
             sys_status['Code'] = "500"  # return a server error, since we can not understand the answer
@@ -79,7 +79,7 @@ def sendsignedchallenge(conn, unit_id, fp_pkey, challenge):
 
 
     if r.status == 403:
-        #print("Access denied")
+        #dprint("Access denied")
         sys_status['status'] = False
         sys_status['message']="Access Denied"
         return sys_status
@@ -120,7 +120,7 @@ def authenticate( conn, unit_id, fp_pkey ):
 
     if 'challange' not in challenge_response:
         # we got a response but it did not contain what was expected, send it on...
-        print("No challage")
+        dprint("No challage")
         return challenge_response
 
     response = sendsignedchallenge(conn, unit_id, fp_pkey, challenge_response['challange'])
@@ -146,9 +146,9 @@ def get_config(configfile):
     try:
         fh_backupconf = open(configfile, encoding="utf_8")
     except Exception as e:
-        print("Error opening file: "+configfile)
-        print(e)
-        sys.exit(1)
+        dprint("Error opening file: "+configfile)
+        dprint(e)
+        terminate(1)
 
     backup_conf = configparser.ConfigParser()
     try:
@@ -159,55 +159,78 @@ def get_config(configfile):
             config[param] = t_config[param].strip('"')
         return config
     except Exception as e:
-        print("Error parsing backup config file: " + configfile)
-        print(e)
-        sys.exit(1)
+        dprint("Error parsing backup config file: " + configfile)
+        dprint(e)
+        terminate(1)
 
+def dprint(line):
+	if args.debug:
+		print(line)
+
+def terminate(status):
+    response = {}
+    response['quota'] = 0
+    response['bytes_used'] = 0
+    response['mounted'] = False
+    #response['status'] = "Fail"
+    
+    if args.type == "sh":
+        #dprint("Output shell format")
+        for x in response.keys():
+            print("%s=%s" % (x,response[x]) )
+    else:
+        # default print json
+        #dprint(response)
+        print(json.dumps(response))
+    sys.exit(status)
+		
 
 ### -------------- MAIN ---------------
 if __name__=='__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-t", "--type", default="json", help="Output format type"
-                    "Valid options are json and sh, defaults to json")
+    parser.add_argument("-t", "--type", default="json", help="Output format type, "
+                    "valid options are json and sh, defaults to json")
+    parser.add_argument("-d", "--debug", help="Enable debug prints",action="store_true")
+
     args = parser.parse_args()
 
     try:
         fh_sysconf = open(SYSINFO, encoding="utf_8")
     except Exception as e:
-        print("Error opening SYSINFO file: "+SYSINFO)
-        print(e)
-        sys.exit(1)
+        dprint("Error opening SYSINFO file: "+SYSINFO)
+        dprint(e)
+        terminate(1)
 
     sysinfo = get_config(SYSINFO)
 
     if 'unit_id' not in sysinfo:
-        print("Missing parameters in sysinfo")
-        sys.exit(1)
+        dprint("Missing parameters in sysinfo")
+        terminate(1)
     unit_id = sysinfo['unit_id'].strip('"')
 
     if 'ca_path' not in sysinfo:
-        print("Missing parameters in sysinfo")
-        sys.exit(1)
+        dprint("Missing parameters in sysinfo")
+        terminate(1)
     cafile = sysinfo['ca_path'].strip('"')
 
     if 'sys_key' not in sysinfo:
-        print("Missing parameters in sysinfo")
-        sys.exit(1)
+        dprint("Missing parameters in sysinfo")
+        terminate(1)
     fp_pkey = sysinfo['sys_key'].strip('"')
 
 
     backup_config = get_config(BACKUP_CONF)
 
     if 'target_file' not in backup_config:
-        print("Missing parameters in backup config")
-        sys.exit(1)
+        dprint("Missing parameters in backup config")
+        terminate(1)
 	
     target_config = get_config(backup_config['target_file'])
 
     if 'backend' not in target_config:
-        print("Missing backend in target file")
-        sys.exit(1)
+        dprint("Missing backend in target file")
+        terminate(1)
     backend = target_config['backend']
 
     if (backend == "s3op://") or (backend == "none"):
@@ -224,21 +247,21 @@ if __name__=='__main__':
             try:
                 ctx.load_verify_locations( cafile )
             except Exception as e:
-                print("CA file error")
-                print(e)
-                sys.exit(1)
+                dprint("CA file error")
+                dprint(e)
+                terminate(1)
 
             conn = http.client.HTTPSConnection(AUTH_SERVER, 443, context=ctx)
 
             response = authenticate(conn, unit_id, fp_pkey)
         except http.client.HTTPException as e:
-            print(e)
+            dprint(e)
 
     elif backend == "local://":
     	
         if 'backupdisk' not in backup_config:
-            print("Missing backupdisk in backup config file")
-            sys.exit(1)
+            dprint("Missing backupdisk in backup config file")
+            terminate(1)
     	
         #Try to mount the disk
         try:
@@ -259,31 +282,31 @@ if __name__=='__main__':
                 response['bytes_used'] = 0
                 response['mounted'] = False
         except Exception as e:
-            print("Error mounting disk")
-            print(e)
-            sys.exit(1)
+            dprint("Error mounting disk")
+            dprint(e)
+            terminate(1)
 
     elif backend == "s3://":
 
         if 'backup_mntpoint' not in backup_config:
-            print("Missing backup_mntpoint in backup config file")
-            sys.exit(1)
+            dprint("Missing backup_mntpoint in backup config file")
+            terminate(1)
         mountpoint = backup_config['backup_mntpoint']
 
         try:
             if not os.path.ismount(mountpoint):
                 #Try to mount the disk
                 try:
-                    print("Trying to mount backend")
+                    dprint("Trying to mount backend")
                     FNULL = open(os.devnull, 'w')
                     retcode = subprocess.call(MOUNT_SCRIPT, stdout=FNULL, stderr=subprocess.STDOUT)
                     if retcode:
-                        print("Error mounting S3 backend")    
-                        sys.exit(1)
+                        dprint("Error mounting S3 backend")    
+                        terminate(1)
                 except Exception as e:
-                    print("Error mounting S3 backend")
-                    print(e)
-                    sys.exit(1)
+                    dprint("Error mounting S3 backend")
+                    dprint(e)
+                    terminate(1)
 
             df = subprocess.Popen(["df", mountpoint], stdout=subprocess.PIPE)
             output = df.communicate()[0].decode()
@@ -293,24 +316,24 @@ if __name__=='__main__':
             response['quota'] = 0
             response['bytes_used'] = int(used) * 1024
             response['mounted'] = True
-        except:
-            print("Error getting quota for s3 backend")
-            print(e)
-            sys.exit(1)
+        except  Exception as e:
+            dprint("Error getting quota for s3 backend")
+            dprint(e)
+            terminate(1)
             
             
     else:
-        print("Unknown backend, exit")
-        sys.exit(1)
+        dprint("Unknown backend, exit")
+        terminate(1)
 
 
     if args.type == "sh":
-        #print("Output shell format")
+        #dprint("Output shell format")
         for x in response.keys():
             print("%s=%s" % (x,response[x]) )
     else:
         # default print json
-        #print(response)
+        #dprint(response)
         print(json.dumps(response))
 
 

@@ -1,3 +1,9 @@
+opi-backup (1.11) vili; urgency=medium
+
+  * Fixed error handling with incorrect credentials for amazon backend. 
+
+ -- PA Nilsson <pa@openproducts.se>  Fri, 13 Jan 2017 14:07:16 +0100
+
 opi-backup (1.10) vili; urgency=medium
 
   * Renamed and moved config files and log files
