@@ -30,14 +30,22 @@ case "$1" in
 	then
 		ln -s /usr/share/opi-backup/opi_backup.sh /etc/cron.daily/opi_backup
 	fi
+
 	if [ ! -e /etc/opi-control/completed/mount-backup ]
 	then
 		ln -s /usr/share/opi-backup/link_backup.sh /etc/opi-control/completed/mount-backup
 	fi
 	
-	if [ ! -e /etc/opi/backup_target.conf ]
+	if [ ! -e /var/opi/etc/backup/target.conf ]
 	then
-		echo 'backend="none"' > /etc/opi/backup_target.conf
+		echo 'backend="none"' > /var/opi/etc/backup/target.conf
+	fi
+
+
+	if [ ! -e /var/log/opi-backup ]
+	then
+		mkdir -p /var/opi/log/backup
+		ln -s /var/opi/log/backup /var/log/opi-backup
 	fi
 
 	# Fix permissions
@@ -48,7 +56,7 @@ case "$1" in
 	chmod 0600 /usr/share/opi-backup/backup.conf
 
 	chown -R root:root /usr/share/opi-backup/
-	chown root:root /etc/opi/backup_target.conf
+	chown root:root /var/opi/etc/backup/target.conf
 
 	update-rc.d shutdown_fs stop 20 0 1 2 6 .
     ;;

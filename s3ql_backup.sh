@@ -26,8 +26,8 @@ set -e
 echo "Backup started. This file shall be removed upon completion of the backup job." > "${logdir}/errors/$new_backup"
 echo "If the job is still running, this file is also present." >> "${logdir}/errors/$new_backup"
 
-
 if [[ $backend == *'s3op'* ]]; then
+	backend_text="OpenProducts"
 	#Get the quota and bytes used from storage server
 	IFS='%'
 	while read -r line; do
@@ -37,16 +37,16 @@ if [[ $backend == *'s3op'* ]]; then
 	if [ ! $Code ]; then
 		echo "Unknown response from server, exiting"
 		exit 1
-else
+	else
 		if [ $Code != "200" ]; then
 			if [[ -z "$message" ]]; then
 				echo "Server responded with code $Code"
 			else
 				echo "$message"
+			fi
+		exit 1
 		fi
-			exit 1
-		fi
-fi
+	fi
 
 	if [ $bytes_used -gt $quota ]; then
 		echo "Insufficient space on target"
@@ -54,8 +54,14 @@ fi
 	fi
 else
 	echo "OP backend not used"
+	if [[ $backend == 's3'* ]]; then
+		backend_text="Amazon"
+	elif [[ $backend == 'local'* ]]; then
+		backend_text="Local target"
+	else
+		backend_text="Unknown"
+	fi
 fi
-
 
 # Make sure the file system is unmounted when we are done
 #trap "cd /; ${s3ql_path}umount.s3ql '$mountpoint'; rm -rf '$mountpoint'; echo $?" EXIT
@@ -192,7 +198,8 @@ if [ "$nbr_files" -gt 4 ]; then
 	ls -tr | head -n -4 | xargs rm
 fi
 
-echo "Backup finished without errors" > "${logdir}/complete/$new_backup"
+echo "Backup finished to '${backend_text}' without errors" > "${logdir}/complete/$new_backup"
+echo "Last backup to: '$backend_text'" > "${logdir}/complete/last_target"
 echo "Backup finished"
 
 cd "$mountpoint"

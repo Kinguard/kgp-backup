@@ -1,3 +1,10 @@
+opi-backup (1.9) vili; urgency=medium
+
+  * Updated paths to config files
+  * Added support for amazon backend 
+
+ -- PA Nilsson <pa@openproducts.se>  Thu, 12 Jan 2017 10:36:28 +0100
+
 opi-backup (1.8) vili; urgency=medium
 
   * Fixed issue with disappearing files while running rsync 
