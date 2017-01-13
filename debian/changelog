@@ -1,3 +1,10 @@
+opi-backup (1.10) vili; urgency=medium
+
+  * Renamed and moved config files and log files
+  * Added information to what backend was used for latest backup
+
+ -- PA Nilsson <pa@openproducts.se>  Fri, 13 Jan 2017 10:51:55 +0100
+
 opi-backup (1.9) vili; urgency=medium
 
   * Updated paths to config files
