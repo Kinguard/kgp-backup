@@ -44,7 +44,8 @@ shift $((OPTIND-1))
 curr_backend=$(sed -n "s%\(\w*\)://.*\s${mountpoint}.*%\1% p" /proc/mounts)
 if [ ! -z $curr_backend ]; then
 	echo "Existing backend: $curr_backend"
-	if [[ $backend != *$curr_backend* ]] ; then
+	echo "Configured backend: $backend"
+	if [[ $backend != "${curr_backend}://" ]] ; then
 		echo "Backend changed, unmount current"
 		fusermount -u ${mountpoint}
 	else
@@ -77,7 +78,7 @@ if [[ $backend == *local* ]]; then
 		# create mountpoint for disk
 		mkdir -p $backupdisk
 		
-		for device in /dev/sd*; do
+		for device in ${backupdevice}; do
 			echo "Device: $device, try to mount it"
 			if [ -b $device ] && mount $device $backupdisk ; then
 				echo "Device $device mounted"
@@ -90,7 +91,7 @@ if [[ $backend == *local* ]]; then
 elif [[ $backend == *s3op://* ]]; then
 	echo "Using: $backend"
 	storage_url="${backend}${storage_server}/${unit_id}"
-	CA="--ssl-ca-path ${ca_path}"
+	CA="--backend-options ssl-ca-path=${ca_path}"
 
 elif [[ $backend == *s3://* ]]; then
 	echo "Using: $backend"
@@ -105,6 +106,7 @@ else
 	echo "No valid backend"
 	exit 1
 fi
+
 if [ -z $storage_url ]; then
 	echo "No suitable device found for backup target, exiting"
 	exit 1	
@@ -140,30 +142,40 @@ mkdir -p $s3ql_cachedir
 
 if [ $fs_mounted -eq 0 ]; then
 	# remove any old symlinks
-	echo "Removing symlinks"
-	cd $owncloud_dir
-	for dir in */ ; do
-		#echo "DIR: $dir"
-    		if [[ -d "${dir}/files/backup" ]]; then
-			#echo "Removing symlink to backupdir '$dir/files/backup'."
-			rm -rf "${dir}/files/backup"
-		fi
-	done
+	if [[ -d "$owncloud_dir" ]]; then
+		echo "Removing symlinks"
+		cd $owncloud_dir
+		for dir in */ ; do
+			#echo "DIR: $dir"
+	    		if [[ -d "${dir}/files/backup" ]]; then
+				#echo "Removing symlink to backupdir '$dir/files/backup'."
+				rm -rf "${dir}/files/backup"
+			fi
+		done
+	fi
 	# Recover cache if e.g. system was shut down while fs was mounted
 	echo "Start fsck"
 	set +e
+	#echo "${s3ql_path}fsck.s3ql ${CA} --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  $storage_url"
 	fsck_result=$(${s3ql_path}fsck.s3ql ${CA} --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  "$storage_url")
+	retval=$?
 	set -e
-	#echo "FSCK result: $fsck_result, exit code $?"
-	if [[ $fsck_result == *'No S3QL file system found'* ]] && [[ $? -eq 0 ]]
+	if [[ $retval -ne 0 ]];
 	then
-		if [ $restore -eq 1 ]; then
-			echo "No filesystem found on device"
-			exit 1
+		if [[ $retval -eq 18 ]] # No S3QL filesystem found
+		then
+			if [ $restore -eq 1 ]; then
+				echo "No filesystem found on device"
+				exit 1
+			fi
+			echo "Creating filesystem"
+			${s3ql_path}mkfs.s3ql ${CA} --cachedir ${s3ql_cachedir} --authfile ${auth_file}  "$storage_url"
+			echo "Finished creating filesystem"
+		else
+			echo "fsck returned unexpected result: $retval"
+			exit $retval
 		fi
-		echo "Creating filesystem"
-		${s3ql_path}mkfs.s3ql ${CA} --cachedir ${s3ql_cachedir} --authfile ${auth_file}  "$storage_url"
-		echo "Finished creating filesystem"
+
 	fi
 	# Not mounted, then mount file system
 	echo "Mount filesystem"

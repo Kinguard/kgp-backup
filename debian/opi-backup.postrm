@@ -39,7 +39,6 @@ case "$1" in
 	if [ -e /etc/opi/backup_target.conf ]; then
 		rm /etc/opi/backup_target.conf
 	fi
-	update-rc.d -f shutdown_fs remove
     ;;
 
     *)

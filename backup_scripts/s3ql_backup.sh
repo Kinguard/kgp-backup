@@ -101,7 +101,7 @@ else
 fi
 
 script_version=$(dpkg -s opi-backup | sed -n 's/Version:\s*\([0-9\.]*\)/\1/p')
-echo $script_version
+echo "Version: $script_version"
 nbr_dots=$(grep -o "\." <<< "$script_version" | wc -l)
 if [ $nbr_dots -gt 1 ]; then
 	echo "Only one level of minor number is supported"
@@ -109,9 +109,8 @@ if [ $nbr_dots -gt 1 ]; then
 	
 else
 	major=$(echo $script_version | sed -n 's/\([0-9]*\)\.[0-9]*/\1/p')
-	minor=$(echo $script_version | sed -n 's/[0-9]*\.\([0-9]\)*/\1/p')
+	minor=$(echo $script_version | sed -n 's/[0-9]*\.\([0-9]*\)/\1/p')
 	version=$((major*1000+$((minor)) ))
-	echo "Version: $version"
 fi
 
 # write temporary "fail" status msg
@@ -129,6 +128,7 @@ rsync -aHAXx --delete-during --delete-excluded --partial -v \
     "${owncloud_dir}" "./${new_backup}/${userdata}"
 
 rsync_user=$?
+echo "RSYNC user: $rsync_user"
 
 echo "Copy calendars and contacts"
 php /usr/share/owncloud/calendars_export.php "./${new_backup}/${userdata}"
@@ -146,6 +146,7 @@ rsync -aHAXx --delete-during --delete-excluded --partial -v \
     "./${new_backup}/${systemdir}"
 
 rsync_system=$?
+echo "RSYNC system: $rsync_system"
 
 if [ $rsync_user -ne 0 ] || [ $rsync_system -ne 0 ]; then
 	if [ $rsync_user -eq 24 ] || [ $rsync_system -eq 24 ]; then

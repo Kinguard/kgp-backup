@@ -1,6 +1,8 @@
 #!/bin/bash
 source /usr/share/opi-backup/backup.conf
 
+ISSUER="Backup System"
+
 #sd card location
 def_sdcard="/dev/mapper/opi"
 def_opiloc="/var/opi"
@@ -16,14 +18,13 @@ function report {
 }
 
 function report_error {
-	echo "$1 (Possibly more informaton in log file: $error_log)" > $alert_file
-	echo "$1 (Possibly more informaton in log file: $error_log)"
+	echo "$1" > $alert_file
+	echo "$1"
 
 	echo "-------   Content of Logfile $error_log  ------------------"
 	cat $error_log
 	
-	echo "heartbeat" > "/sys/class/leds/opi:red:usr3/trigger"
-	echo "default-on" > "/sys/class/leds/opi:green:usr1/trigger"
+	kgp-notifier -m "Backup Failed, see backup admin UI for more information." -l "LOG_ERR" -b -i "${ISSUER}"
 	exit 1
 }
 
@@ -33,7 +34,6 @@ if [[ ! -z $(pgrep 's3ql_backup.sh') ]] ; then
 	exit 0
 fi
 
-echo "none" > "/sys/class/leds/opi:red:usr3/trigger"
 
 if [ -e $target_file ]; then
 	source $target_file # reads which backend to use
@@ -71,17 +71,18 @@ if [ ! -d $logdir ]; then
 	mkdir $logdir
 fi
 
-echo "heartbeat" > "/sys/class/leds/opi:green:usr1/trigger"
-
+msgid=$(kgp-notifier -l LOG_NOTICE -m "Backup started" -i "${ISSUER}")
+echo "MSGID: $msgid"
 cd ${backupbin_path} 
-"./s3ql_backup.sh" &> $error_log
+./s3ql_backup.sh &> $error_log
+s3ql_retval=$?
+# acknowledge the "start message"
+kgp-notifier -a $msgid
 
-
-if [ $? -ne 0 ]; then
+if [ $s3ql_retval -ne 0 ]; then
 	report_error "Backup failed"
 else
 	"./link_backup.sh" &>> $error_log
 fi
 
-echo "default-on" > "/sys/class/leds/opi:green:usr1/trigger"
 
