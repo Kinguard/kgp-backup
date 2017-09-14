@@ -121,7 +121,10 @@ if __name__=='__main__':
             conn.request( "GET", path, None, headers)
 
             r = conn.getresponse()
-            response = r.read().decode("utf-8")
+            j_resp = json.loads(r.read().decode("utf-8"))
+            response = {}
+            response['quota'] = int(j_resp['quota'][:-2])*1024
+            response['bytes_used'] = int(int(j_resp['bytes_used'])/1024)
 
         except http.client.HTTPException as e:
             dprint(e)
@@ -142,8 +145,8 @@ if __name__=='__main__':
                 device, size, used, available, percent, mountpoint = \
                 output.split("\n")[1].split()
                 response = {}
-                response['quota'] = int(size) * 1024
-                response['bytes_used'] = int(used) * 1024
+                response['quota'] = int(size)
+                response['bytes_used'] = int(used)
                 response['mounted'] = True
             else:
                 response = {}

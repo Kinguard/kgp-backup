@@ -33,13 +33,23 @@ while getopts "b:a:m:r" opt; do
     esac
 done
 
+
+
+
+
+# Exit codes for s3ql mount documented in rst/man/mount.rst
+# Exit codes for s3ql fsck documented in rst/man/fsck.rst
+# Additional:
+#  70 : No valid backend specified
+#  71 : No suitable target
+#  75 : Missing filesystem during restore
+#  90 : Missing 'bucket' for s3 backend
+#
+
 shift $((OPTIND-1))
 
 [ "$1" = "--" ] && shift
 
-#echo "auth_file=$auth_file, backend=$backend, mountpoint='$mountpoint' Leftovers: $@"
-
-#exit 1
 # find out if there is a mounted backend
 curr_backend=$(sed -n "s%\(\w*\)://.*\s${mountpoint}.*%\1% p" /proc/mounts)
 if [ ! -z $curr_backend ]; then
@@ -97,19 +107,19 @@ elif [[ $backend == *s3://* ]]; then
 	echo "Using: $backend"
 	if [ -z "$bucket" ]; then
 		echo "Missing bucket"
-		exit 1
+		exit 90
 	else		
 		storage_url="${backend}${bucket}/"
 		CA=""
 	fi
 else
 	echo "No valid backend"
-	exit 1
+	exit 70
 fi
 
 if [ -z $storage_url ]; then
 	echo "No suitable device found for backup target, exiting"
-	exit 1	
+	exit 71	
 fi
 
 # Test if s3ql filesystem is mounted
@@ -166,11 +176,14 @@ if [ $fs_mounted -eq 0 ]; then
 		then
 			if [ $restore -eq 1 ]; then
 				echo "No filesystem found on device"
-				exit 1
+				exit 75
 			fi
 			echo "Creating filesystem"
 			${s3ql_path}mkfs.s3ql ${CA} --cachedir ${s3ql_cachedir} --authfile ${auth_file}  "$storage_url"
 			echo "Finished creating filesystem"
+		elif [[ $retval -eq 128 ]] # Recoverable error, warn but do nothing.
+		then
+			echo "WARN, recoverable error was encountered"
 		else
 			echo "fsck returned unexpected result: $retval"
 			exit $retval
@@ -181,4 +194,6 @@ if [ $fs_mounted -eq 0 ]; then
 	echo "Mount filesystem"
 	${s3ql_path}mount.s3ql --allow-other ${CA} --quiet --cachedir ${s3ql_cachedir} --cachesize ${s3ql_cachesize} --log $log_file --authfile ${auth_file} "$storage_url" "$mountpoint"
 fi
+mount_val=$?
+exit $mount_val
 

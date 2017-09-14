@@ -121,7 +121,7 @@ echo '{"date":"'$new_backup'", "status":"fail", "script_version":"'$version'"}' 
 echo "Copy user files"
 
 set +e
-rsync -qaHAXx --delete-during --delete-excluded --partial -v \
+rsync -qaHAXx --delete-during --delete-excluded --partial \
     --exclude "*/cache/" \
     --exclude "*/gallery/" \
     --exclude "*/files/backup" \
@@ -135,7 +135,7 @@ php /usr/share/owncloud/calendars_export.php "./${new_backup}/${userdata}"
 php /usr/share/owncloud/contacts_export.php "./${new_backup}/${userdata}"
 
 echo "Copy system files"
-rsync -qaHAXx --delete-during --delete-excluded --partial -v \
+rsync -qaHAXx --delete-during --delete-excluded --partial \
     --exclude "owncloud/data/" \
     --exclude "mysql" \
     "/var/opi" \
