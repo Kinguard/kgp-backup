@@ -1,0 +1,10 @@
+[Unit]
+Description=Unmount of backup file system
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+ExecStop=/usr/share/opi-backup/umount_fs.sh
+
+[Install]
+WantedBy=multi-user.target

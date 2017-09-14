@@ -1,3 +1,9 @@
+opi-backup (1.12) vili; urgency=medium
+
+  * Make rsync only output errors to logfile to keep the size down. 
+
+ -- PA Nilsson <pa@openproducts.se>  Thu, 14 Sep 2017 14:33:29 +0200
+
 opi-backup (1.11) vili; urgency=medium
 
   * Fixed error handling with incorrect credentials for amazon backend. 
