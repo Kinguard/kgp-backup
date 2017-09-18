@@ -4,6 +4,7 @@ source /etc/opi/sysinfo.conf
 cd $(dirname "${BASH_SOURCE[0]}")
 source backup.conf
 source mount_fs.sh
+echo "Mount complete"
 
 new_backup=`date "+%Y-%m-%d_%H:%M:%S"`
 

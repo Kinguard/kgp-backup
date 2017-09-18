@@ -167,7 +167,7 @@ if [ $fs_mounted -eq 0 ]; then
 	echo "Start fsck"
 	set +e
 	#echo "${s3ql_path}fsck.s3ql ${CA} --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  $storage_url"
-	fsck_result=$(${s3ql_path}fsck.s3ql ${CA} --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  "$storage_url")
+	fsck_result=$(${s3ql_path}fsck.s3ql ${CA} --quiet --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  "$storage_url")
 	retval=$?
 	set -e
 	if [[ $retval -ne 0 ]];
@@ -183,7 +183,7 @@ if [ $fs_mounted -eq 0 ]; then
 			echo "Finished creating filesystem"
 		elif [[ $retval -eq 128 ]] # Recoverable error, warn but do nothing.
 		then
-			echo "WARN, recoverable error was encountered"
+			echo "WARN, recoverable error (${retval}) was encountered"
 		else
 			echo "fsck returned unexpected result: $retval"
 			exit $retval
@@ -192,8 +192,15 @@ if [ $fs_mounted -eq 0 ]; then
 	fi
 	# Not mounted, then mount file system
 	echo "Mount filesystem"
-	${s3ql_path}mount.s3ql --allow-other ${CA} --quiet --cachedir ${s3ql_cachedir} --cachesize ${s3ql_cachesize} --log $log_file --authfile ${auth_file} "$storage_url" "$mountpoint"
+	${s3ql_path}mount.s3ql --allow-other ${CA} --cachedir ${s3ql_cachedir} --cachesize ${s3ql_cachesize} --log $log_file --authfile ${auth_file} "$storage_url" "$mountpoint"
+	retval=$?
+else
+	retval=0
 fi
-mount_val=$?
-exit $mount_val
+
+if [[ $retval -ne 0 ]]; then
+	exit $retval
+fi
+# this script is 'sourced' from s3ql-backup and must not exit if nothing is wrong.
+
 

@@ -1,3 +1,9 @@
+opi-backup (1.14) vili; urgency=medium
+
+  * Fixed unwanted termination when mount script was called from backup script. 
+
+ -- PA Nilsson <pa@openproducts.se>  Mon, 18 Sep 2017 10:39:03 +0200
+
 opi-backup (1.13) vili; urgency=medium
 
   * Fixed issue with reporting quota on s3op backend

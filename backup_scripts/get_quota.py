@@ -121,10 +121,17 @@ if __name__=='__main__':
             conn.request( "GET", path, None, headers)
 
             r = conn.getresponse()
-            j_resp = json.loads(r.read().decode("utf-8"))
-            response = {}
-            response['quota'] = int(j_resp['quota'][:-2])*1024
-            response['bytes_used'] = int(int(j_resp['bytes_used'])/1024)
+            if (r.status != 200):
+                response = {}
+                response['quota'] = int(j_resp['quota'][:-2])*1024
+                response['bytes_used'] = int(int(j_resp['bytes_used'])/1024)
+                response['Code'] = conn.status
+            else:
+                j_resp = json.loads(r.read().decode("utf-8"))
+                response = {}
+                response['quota'] = int(j_resp['quota'][:-2])*1024
+                response['bytes_used'] = int(int(j_resp['bytes_used'])/1024)
+                response['Code'] = 200
 
         except http.client.HTTPException as e:
             dprint(e)
