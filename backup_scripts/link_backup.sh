@@ -2,7 +2,6 @@
 
 DIR=$(dirname "${BASH_SOURCE[0]}")
 cd $DIR
-pwd
 
 source mount_fs.sh
 
