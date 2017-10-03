@@ -1,0 +1,14 @@
+[s3op]
+storage-url: s3op://
+backend-login: NotUsed
+backend-password: NotUsed
+fs-passphrase: test
+
+[local]
+storage-url: local://
+fs-passphrase: test
+[s3]
+storage-url: s3://
+fs-passphrase: test
+backend-login:AKIAJ74K2OEC7PYUIPAA
+backend-password:WlM/bDRu8ePB37hBjFgD+DGWpHCeuMx6GbltoN0s

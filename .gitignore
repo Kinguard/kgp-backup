@@ -5,3 +5,4 @@ debian/*.substvars
 debian/*helper
 debian/opi-backup/
 *sublime*
+testfiles/*bak*
