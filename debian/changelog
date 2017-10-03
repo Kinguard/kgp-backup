@@ -1,3 +1,9 @@
+opi-backup (2.0) vili; urgency=medium
+
+  * Added support for both s3ql 2.7 and 2.21 versions. 
+
+ -- PA Nilsson <pa@openproducts.se>  Tue, 03 Oct 2017 23:36:13 +0200
+
 opi-backup (1.14) vili; urgency=medium
 
   * Fixed unwanted termination when mount script was called from backup script. 

@@ -2,7 +2,7 @@
 source /etc/opi/sysinfo.conf
 
 cd $(dirname "${BASH_SOURCE[0]}")
-source backup.conf
+# mounnt_fs.sh also includes backup.lib.sh where a bunch of useful defines and functinos lives.
 source mount_fs.sh
 echo "Mount complete"
 
@@ -27,13 +27,13 @@ set -e
 echo "Backup started. This file shall be removed upon completion of the backup job." > "${logdir}/errors/$new_backup"
 echo "If the job is still running, this file is also present." >> "${logdir}/errors/$new_backup"
 
-if [[ $backend == *'s3op'* ]]; then
+if [[ $backend == "s3op://" ]]; then
 	backend_text="OpenProducts"
 	#Get the quota and bytes used from storage server
 	IFS='%'
 	while read -r line; do
 		declare $line
-	done < <(${backupbin_path}/get_quota.py -t sh)
+	done < <(./get_quota.py -t sh)
 	unset IFS
 	if [ ! $Code ]; then
 		echo "Unknown response from server, exiting"
@@ -54,21 +54,18 @@ if [[ $backend == *'s3op'* ]]; then
 		exit 1
 	fi
 else
-	echo "OP backend not used"
-	if [[ $backend == 's3'* ]]; then
+	#echo "OP backend not used"
+	if [[ $backend == "s3://" ]]; then
 		backend_text="Amazon"
-	elif [[ $backend == 'local'* ]]; then
+	elif [[ $backend == "local://" ]]; then
 		backend_text="Local target"
 	else
 		backend_text="Unknown"
 	fi
 fi
 
-# Make sure the file system is unmounted when we are done
-#trap "cd /; ${s3ql_path}umount.s3ql '$mountpoint'; rm -rf '$mountpoint'; echo $?" EXIT
-
 # Figure out the most recent backup
-cd "$mountpoint"
+cd ${mountpoints[$CURRENT_VERSION]}
 
 last_backup=`python3 <<EOF
 import os
@@ -82,7 +79,7 @@ EOF`
 echo "Duplicate backup"
 if [ -n "$last_backup" ]; then
     echo "Copying $last_backup to $new_backup..."
-    ${s3ql_path}s3qlcp "$last_backup" "$new_backup"
+    ${PYPATH[$CURRENT_VERSION]}${s3qlpath[$CURRENT_VERSION]}s3qlcp "$last_backup" "$new_backup"
 
     # Make the last backup immutable
     # (in case the previous backup was interrupted prematurely)
@@ -105,8 +102,8 @@ script_version=$(dpkg -s opi-backup | sed -n 's/Version:\s*\([0-9\.]*\)/\1/p')
 echo "Version: $script_version"
 nbr_dots=$(grep -o "\." <<< "$script_version" | wc -l)
 if [ $nbr_dots -gt 1 ]; then
-	echo "Only one level of minor number is supported"
-	exit 1
+	echo "WARN: Only one level of minor number is supported, version number is not to be trusted."
+	version=$script_version
 	
 else
 	major=$(echo $script_version | sed -n 's/\([0-9]*\)\.[0-9]*/\1/p')
@@ -126,21 +123,32 @@ rsync -qaHAXx --delete-during --delete-excluded --partial \
     --exclude "*/cache/" \
     --exclude "*/gallery/" \
     --exclude "*/files/backup" \
-    "${owncloud_dir}" "./${new_backup}/${userdata}"
+    "${nextcloud_dir}" "./${new_backup}/${userdata}"
 
 rsync_user=$?
 echo "RSYNC user: $rsync_user"
 
 echo "Copy calendars and contacts"
-php /usr/share/owncloud/calendars_export.php "./${new_backup}/${userdata}"
-php /usr/share/owncloud/contacts_export.php "./${new_backup}/${userdata}"
+calendarexport="/usr/share/nextcloud/calendars_export.php"
+if [[ -e $calendarexport ]]; then
+	php "$calendarexport" "./${new_backup}/${userdata}"
+else
+	echo "Missing Calendar Export Script"
+fi
+
+contactsexport="/usr/share/nextcloud/calendars_export.php"
+if [[ -e $contactsexport ]]; then
+	php "$contactsexport" "./${new_backup}/${userdata}"
+else
+	echo "Missing Contacts Export Script"
+fi
 
 echo "Copy system files"
 rsync -qaHAXx --delete-during --delete-excluded --partial \
-    --exclude "owncloud/data/" \
+    --exclude $nextcloud_dir \
     --exclude "mysql" \
     "/var/opi" \
-    "/usr/share/owncloud/config/config.php" \
+    "/usr/share/nextcloud/config/config.php" \
     "/etc/postfix/main.cf" "/etc/mailname" \
     "/etc/shadow" \
     "/etc/opi" \
@@ -204,19 +212,34 @@ echo "Backup finished to '${backend_text}' without errors" > "${logdir}/complete
 echo "Last backup to: '$backend_text'" > "${logdir}/complete/last_target"
 echo "Backup finished"
 
-cd "$mountpoint"
+cd ${mountpoints[$CURRENT_VERSION]}
 # write "success" status msg
 echo '{"date":"'$new_backup'", "status":"ok", "script_version":"'$version'"}' > ./${new_backup}/status.json
 echo "Expire backups"
 # Expire old backups
 
-# Note that expire_backups.py comes from contrib/ and is not installed
-# by default when you install from the source tarball. If you have
-# installed an S3QL package for your distribution, this script *may*
-# be installed, and it *may* also not have the .py ending.
-${s3ql_contrib}expire_backups.py --use-s3qlrm --reconstruct-state 1 7 14 31 90 180 360
 
-echo "Syncing filesystem"
-${s3ql_path}s3qlctrl flushcache $mountpoint
+for version in "${versions[@]}"
+do
+	if [[ ${valid_fs[$version]} -eq 0 || ${valid_fs[$version]} -eq 128 ]]; then
+		if [[ -e ${mountpoints[$version]} ]]; then
+			echo "Expire backups for version '$version'"
+			cd ${mountpoints[$version]}
+			case $version in
+				"v2_21")
+					expire_backups --use-s3qlrm --reconstruct-state 1 7 14 31 90 180 360
+					;;
+				*)
+					expire_backups --reconstruct-state 1 7 14 31 90 180 360
+					;;
+			esac
+			echo "Syncing filesystem"
+			${PYPATH[$version]}${s3qlpath[$version]}s3qlctrl flushcache ${mountpoints[$CURRENT_VERSION]}
+		else
+			echo "No legacy backups mounted"
+		fi
+	fi
+done
 
+echo "Exit with '$rsync_retval'"
 exit $rsync_retval

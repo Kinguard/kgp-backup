@@ -1,9 +1,8 @@
 #!/bin/bash
 #set -x
 
-DEBUG=1
+DEBUG=0
 DIR=$(dirname "${BASH_SOURCE[0]}")
-echo "Running from ${DIR}"
 cd $DIR
 source /etc/opi/sysinfo.conf
 source backup.conf
@@ -17,9 +16,10 @@ function exit_fail {
     #  75 : Missing filesystem during restore
     #  90 : Missing 'bucket' for s3 backend
     #  99 : Device locked (luksdevice not present in /proc/mounts)
-    echo "Error detected, exit code '$1'"
-    if [ -z "$2" ]; then
-        echo "Message: $2"
+    echo ""
+    echo -e "${red}Error detected, exit code '$1'${nc}"
+    if [ ! -z "$2" ]; then
+        echo -e "${purple}Message: $2${nc}"
     fi
     echo "Codes defined by this script:"
     echo "   1 : General, unspecified error "
@@ -61,7 +61,7 @@ restore=0
 
 
 # cmd-line overrides config file parameters.
-while getopts "b:a:m:r" opt; do
+while getopts "b:a:m:rd" opt; do
     case "$opt" in
     a)  auth_file=$OPTARG
         ;;
@@ -71,7 +71,7 @@ while getopts "b:a:m:r" opt; do
 	    ;;
     r)  restore=1
 	    ;;
-    d)  DUBUG=1
+    d)  DEBUG=1
         ;;
     ?)	exit 1
 	   ;;
@@ -114,20 +114,26 @@ else
 
     echo "No currently valid backends."
 
-    if [[ $backend == *local* ]]; then
-        # check if we have a usb-mem mounted somewhere
-        path=$(get_localpath)
-        if [[ -z "$path" ]]; then
-            # no mem mounted, try to get one
-            path=$(mount_localdevice)
+    case $backend in
+        "local://")
+            # check if we have a usb-mem mounted somewhere
+            path=$(get_localpath)
             if [[ -z "$path" ]]; then
-                # there is no suitable device mounted
-                exit $NoSuitableTarget
+                # no mem mounted, try to get one
+                path=$(mount_localdevice)
+                if [[ -z "$path" ]]; then
+                    # there is no suitable device mounted
+                    exit_fail $NoSuitableTarget "No Suitable Target"
+                fi
             fi
-        fi
-    fi
-
-
+            ;;
+        "s3://")
+            # setup path to be 'bucket' read from target.conf
+            path=$bucket
+            ;;
+        *)
+            ;;
+    esac
 
     echo "Backend to use: $backend"
     declare -A storage_urls
@@ -158,7 +164,7 @@ else
 
     for version in "${versions[@]}"
     do
-        case $valid_fs[$version] in
+        case ${valid_fs[$version]} in
             0)
                 debug "Valid FS for version '$version'"
                 ;;
@@ -170,29 +176,44 @@ else
                     valid_fs[$version]=$?
                 fi
                 ;;
+            17)
+                exit_fail ${valid_fs[$version]} "Invalid passphrase"
+                ;;
             *)
                 debug "Unexpected error from FSCK"
-                exit_fail $valid_fs[$CURRENT_VERSION] "Unexpected error from FSCK"
+                exit_fail ${valid_fs[$version]} "Unexpected error from FSCK"
         esac
     done
 
 
-    # Mount valid FS's
-    status
-    for version in "${versions[@]}"
-    do
-        if [[ $valid_fs[$version] -eq 0 ]]; then
-            debug "Trying to mount FS with '$version'"
-            if [[ ! -z $mountpoint ]]; then
-                # override mountpoint
-                echo "Using mountpoint override '$mountpoint'"
-                mount_fs $version $mountpoint
-            else
-                mount_fs $version ${mountpoints[$version]}
+    if [[ ${#valid_fs[@]} -gt 0 ]]; then
+        # Mount valid FS's
+        for version in "${versions[@]}"
+        do
+            if [[ ${valid_fs[$version]} -eq 0 || ${valid_fs[$version]} -eq 128 ]]; then
+                debug "Trying to mount FS with '$version'"
+                if [[ ! -z "$mountpoint" ]]; then
+                    # override mountpoint, mount the first valid FS found
+                    # prio order is set by "versions" array
+                    echo "Using mountpoint override '$mountpoint'"
+                    mount_fs $version $mountpoint
+                    status=$?
+                    if [[ $status -eq 0 ]]; then
+                        debug "Mounted $backend"
+                        break
+                    fi
+                    check_fail $status "Failed to mount FS"
+                else
+                    mount_fs $version ${mountpoints[$version]}
+                    status=$?
+                    check_fail $status "Failed to mount FS"
+                fi
+                
             fi
-            
-        fi
-    done
+        done
+    else
+        exit_fail $NoSuitableTarget "No valid targets for backup"
+    fi
 
 
 fi

@@ -39,11 +39,58 @@ PYPATH=([v2_7]="${PYPATH_v2_7}" [v2_21]="")
 declare -A s3qlpath
 s3qlpath=([v2_7]="${s3qlpath_v2_7}" [v2_21]="")
 
+###  define ansi colors
+red="\033[0;31m"
+green="\033[0;32m"
+purple="\033[1;35m"
+yellow="\033[1;33m"
+nc="\033[0m"
+
+
 function debug {
 	# redirect debug log to stderr
 	if [[ $DEBUG -ne 0 ]]; then
 		(>&2 echo "   $1")
 	fi
+}
+
+function s3ql_running {
+    debug "Checking if s3ql is running"
+    ps ax | grep 's3ql' | grep -qv 'grep'
+    local status=$?
+    debug "S3QL status: '$status'"
+    return $status
+}
+
+function s3ql_kill {
+    debug "Killing old processes"
+    sudo killall -9 mount.s3ql
+}
+
+function check_valid_device {
+    local mntpoint
+    local backend=$1
+    local device
+
+    debug "Check validity of the backend"
+    debug "Backend: $1"
+    if [[ $backend == "local://" ]]; then
+        mntpoint=$(sed -n "s%${backend}\([^[:space:]]*\)\/.*%\1% p" /proc/mounts)
+        mntpoint=$(dirname ${mntpoint})
+        debug "Mountpoint: '$mntpoint'"
+        device=$(sed -n "s%\(\/dev/sd[^[:space:]]*\).*${mntpoint}.*%\1% p" /proc/mounts)
+        debug "Device: '$device'"
+        if [[ -b $device ]]; then
+            status=$PASS
+        else
+            status=$FAIL
+        fi
+    else
+        debug "No device needed for non-local backends"
+        status=$PASS
+    fi
+    debug "Valid device: $status"
+    return $status
 }
 
 function get_valid_backends {
@@ -53,6 +100,7 @@ function get_valid_backends {
 	local backend
 	local this_backend
 	local s3ql_status
+    local devicestatus
 	declare -A current_backends
 
 	backend=$1
@@ -60,9 +108,10 @@ function get_valid_backends {
 	for version in "${!mountpoints[@]}"
 	do
 	    debug "Checking mounted backends for '$version'"
-	    this_backend=$(sed -n "s%\(\w*\)://.*\s${mountpoints[$version]}.*%\1% p" /proc/mounts)
+	    this_backend=$(sed -n "s%\(\w*://\).*\s${mountpoints[$version]}.*%\1% p" /proc/mounts)
 	    if [[ ! -z "$this_backend" ]]; then
-	        current_backends[$version]=$this_backend
+            #debug "THIS: $this_backend"
+            current_backends[$version]=$this_backend
 	    fi
 	done
 
@@ -71,20 +120,33 @@ function get_valid_backends {
 	    for version in "${!current_backends[@]}";
 	    do
 	        debug "$version --- ${current_backends[$version]}"
-	        # Get the process id for the current backend
-	        s3ql_status=$(ps ax | grep 's3ql' | grep -v 'grep' | awk '{print $(1)}')
+            check_valid_device ${current_backends[$version]}
+            devicestatus=$?
 
-	        # Unmount if the backend has changed, or if s3ql is not running
-	        debug "Status: $s3ql_status"
+	        # Unmount if the backend has changed, if s3ql is not running or if the target device is not present anymore
 	        debug "Backend: $backend"
-	        if [[ -z "$s3ql_status" ]] || [[ $backend != "${current_backends[$version]}://" ]] ; then
+            s3ql_running
+            s3ql_status=$?
+	        if [[ $devicestatus -ne 0 || $s3ql_status -ne 0 || $backend != "${current_backends[$version]}" ]] ; then
 	            debug "Unmount $version from ${mountpoints[$version]}"
-	            sudo umount ${mountpoints[$version]}
+                s3ql_running
+                s3ql_status=$?
+                if [[ $s3ql_status -eq 0 ]]; then
+                    sudo ${PYPATH[$version]}${s3qlpath[$version]}umount.s3ql ${mountpoints[$version]}
+                else
+                    debug "S3QL not running, force umount"
+                    sudo umount ${mountpoints[$version]}
+                fi
+                #Kill all potentially remaining s3ql process
+                s3ql_running
+                s3ql_status=$?
+                if [[ $s3ql_status -eq 0 ]]; then
+                    s3ql_kill
+                fi
 	        else
 	            valid_backends[$version]=${current_backends[$version]}
 
 	        fi
-
 	    done
 	   	for version in "${!valid_backends[@]}"
 		do
@@ -93,6 +155,12 @@ function get_valid_backends {
 
 	else
 	    debug "No backends mounted"
+        #Kill all s3ql process if there is no backend mounted.
+        s3ql_running
+        s3ql_status=$?
+        if [[ $s3ql_status -eq 0 ]]; then
+            s3ql_kill
+        fi
 	fi
 }
 
@@ -104,9 +172,9 @@ function get_localpath {
 	local realpath
 
     debug "Trying to find a suitable device on 'default' location ($device_mountpath)"
-    # Need to have the trailing space included here in order to to get false positives
+    # Need to have the trailing space included here in order not to get false positives
     local_device=$(grep "$device_mountpath " /proc/mounts | awk '{print $1}')
-    if [ ! -z $local_device ]; then
+    if [ ! -z "$local_device" ]; then
         if [ -b $local_device ] ; then
             # the mountpoint exists and so does the device, lets use it.
             debug "Usable device found ('$local_device') on default location"
@@ -125,7 +193,7 @@ function get_localpath {
                 fi
             done
             debug "Unmounting ${mountpoints[$version]}"
-            umount $local_device
+            sudo umount $device_mountpath
         fi
     else
         debug "Nothing on 'default' location"
@@ -154,20 +222,33 @@ function get_localpath {
 
 function mount_localdevice {
     # create mountpoint for disk
-    sudo mkdir -p $device_mountpath
-    
+    local mountpath
+    if [[ ! -z "$1" ]];then
+        #override mountpath
+        mountpath=$1
+        debug "Override default mnt path, using '$mountpath'"
+    else 
+        mountpath=$device_mountpath  
+    fi
+    sudo mkdir -p $mountpath
+    shopt -s nullglob
+
     for device in ${backupdevice}; do
         debug "Device: $device, try to mount it"
-        if [ -b $device ] && sudo mount $device $device_mountpath ; then
-            debug "Device $device mounted"
-            debug "Local path: $device_mountpath"
-            echo $device_mountpath
-            break
+        if [ -b "$device" ] ; then
+            sudo mount $device $mountpath
+            if [[ $? -eq 0 ]]; then
+                debug "Device $device mounted"
+                debug "Local path: $mountpath"
+                echo $mountpath
+                break
+            else
+                debug "Failed to mount '$device'"
+            fi
          else
          	debug "Failed to mount '$device'"
         fi
     done
-
 }
 
 function get_urls {
@@ -260,24 +341,26 @@ function fsck {
         if [[ ! -e $path ]]; then
              return 16
         fi
+    fi
+	debug "Running fsck for version '$version'"
 
-    else
-    	debug "Running fsck for version '$version'"
-
-    	#local cmd="sudo ${PYPATH[$version]}${s3qlpath[$version]}fsck.s3ql ${CA[$version]} --quiet --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  ${storage_urls[$version]}"
-    	#debug "sudo ${PYPATH[$version]}${s3qlpath[$version]}fsck.s3ql ${CA[$version]} --quiet --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  ${storage_urls[$version]}"
-    	fsck_msg=$(sudo ${PYPATH[$version]}${s3qlpath[$version]}fsck.s3ql $s3ql_quiet ${CA[$version]} --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  ${storage_urls[$version]} 2>&1 >/dev/null)
-        fsck_result=$?
-        if [[ $fsck_result -eq 1 && "$version" == "v2_7" ]]; then
-            debug "MSG $fsck_msg"
-            if [[ $fsck_msg == *"No S3QL file system found"* ]]; then
-            # 2.7 returns 1 for a missing filesystem
-            fsck_result=16
-            fi
-            if [[ $fsck_msg == *"NoSuchBucket"* ]]; then
+	#local cmd="sudo ${PYPATH[$version]}${s3qlpath[$version]}fsck.s3ql ${CA[$version]} --quiet --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  ${storage_urls[$version]}"
+	#debug "sudo ${PYPATH[$version]}${s3qlpath[$version]}fsck.s3ql ${CA[$version]} --quiet --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  ${storage_urls[$version]} 2>&1"
+	fsck_msg=$(sudo ${PYPATH[$version]}${s3qlpath[$version]}fsck.s3ql $s3ql_quiet ${CA[$version]} --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  ${storage_urls[$version]} 2>&1)
+    fsck_result=$?
+    #debug "MSG $fsck_msg"
+    if [[ $fsck_result -eq 1 && "$version" == "v2_7" ]]; then
+        if [[ $fsck_msg == *"No S3QL file system found"* ]]; then
             # 2.7 returns 1 for a missing filesystem
             fsck_result=18
-            fi
+        fi
+        if [[ $fsck_msg == *"NoSuchBucket"* ]]; then
+            # 2.7 returns 1 for a missing bucket
+            fsck_result=16
+        fi
+        if [[ $fsck_msg == *"Wrong file system passphrase"* ]]; then
+            # 2.7 returns 1 for a missing bucket
+            fsck_result=17
         fi
     fi
 
@@ -306,7 +389,7 @@ function create_fs {
         fi
     fi
 
-    sudo ${PYPATH[$version]}${s3qlpath[$version]}mkfs.s3ql $s3ql_quiet ${CA[$version]} --authfile ${auth_file} ${storage_urls[$version]} > /dev/null
+    sudo ${PYPATH[$version]}${s3qlpath[$version]}mkfs.s3ql $s3ql_quiet ${CA[$version]} --authfile ${auth_file} ${storage_urls[$version]} &> /dev/null
     local retval=$?
     return $retval
 }
@@ -336,8 +419,8 @@ function mount_fs {
         debug "Failed to crete mountpoint"
         return $retval
     fi
-    echo "sudo mount.s3ql $s3ql_quiet ${CA[$CURRENT_VERSION]} --authfile ${auth_file} ${storage_urls[$version]} $mountpath"
-    sudo ${PYPATH[$version]}${s3qlpath[$version]}mount.s3ql $s3ql_quiet ${CA[$version]} --authfile ${auth_file} ${storage_urls[$version]} $mountpath
+    #echo "sudo mount.s3ql $s3ql_quiet ${CA[$CURRENT_VERSION]} --authfile ${auth_file} ${storage_urls[$version]} $mountpath"
+    sudo ${PYPATH[$version]}${s3qlpath[$version]}mount.s3ql --allow-other --cachesize ${s3ql_cachesize} $s3ql_quiet ${CA[$version]} --authfile ${auth_file} ${storage_urls[$version]} $mountpath
     return $?
 
 }

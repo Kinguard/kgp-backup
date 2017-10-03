@@ -15,12 +15,11 @@ from pylibopi import AuthLogin
 AUTH_SERVER        = "auth.openproducts.com"
 AUTH_PATH        = "/"
 QUOTA_FILE        = "quota.php"
-
+CURR_DIR = os.path.dirname(os.path.realpath(__file__))
 SYSINFO="/etc/opi/sysinfo.conf"
-BACKUP_TARGET = "/var/opi/backup_target.conf"
-BACKUP_CONF   = "/usr/share/opi-backup/backup.conf"
-
-MOUNT_SCRIPT = "/usr/share/opi-backup/mount_fs.sh"
+BACKUP_TARGET = "/var/opi/etc/backup/target.conf"
+BACKUP_CONF   = CURR_DIR+"/backup.conf"
+MOUNT_SCRIPT = CURR_DIR+"/mount_fs.sh"
 #TODO: more errorchecking
 
 # Constants used on serverside
@@ -61,7 +60,6 @@ if __name__=='__main__':
     parser.add_argument("-d", "--debug", help="Enable debug prints",action="store_true")
 
     args = parser.parse_args()
-
     try:
         sysinfo = pykgpconfig.read_config(SYSINFO)
     except Exception as e:
@@ -167,10 +165,10 @@ if __name__=='__main__':
 
     elif backend == "s3://":
 
-        if 'backup_mntpoint' not in backup_config:
-            dprint("Missing backup_mntpoint in backup config file")
+        if 'mountpoint' not in backup_config:
+            dprint("Missing mountpoint in backup config file")
             terminate(1)
-        mountpoint = backup_config['backup_mntpoint']
+        mountpoint = backup_config['mountpoint']
 
         try:
             if not os.path.ismount(mountpoint):

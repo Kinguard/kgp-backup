@@ -1,2 +1,2 @@
 backup_scripts/*	/usr/share/opi-backup 	
-owncloud_scripts/*	/usr/share/owncloud
+nextcloud_scripts/*	/usr/share/nextcloud

@@ -24,7 +24,7 @@ source ../backup_scripts/backup.lib.sh
 DEBUG=1
 
 
-#TESTALL=""
+TESTALL=""
 TESTALL=1
 
 TESTCOUNT=0
@@ -38,12 +38,6 @@ authkey="/var/opi/etc/syspriv.pem"
 pyauth="/usr/lib/python3/dist-packages/pylibopi.py"
 auth_file="auth.conf.test"
 
-###  define ansi colors
-red="\033[0;31m"
-green="\033[0;32m"
-purple="\033[1;35m"
-yellow="\033[1;33m"
-nc="\033[0m"
 s3ql_quiet="--quiet"
 
 
@@ -145,9 +139,9 @@ function wipe_targets {
 	    local path
 	    get_def_path $backend
 
-        if [[ -z "$path" ]]; then
+        if [[ $backend == "local://" && -z "$path" ]]; then
             # there is no suitable device mounted
-            return
+            continue
         fi
 
         # setup storage_urls
@@ -158,6 +152,10 @@ function wipe_targets {
 			debug "VER1: $version Backend: $backend"
 			wipe_fs $version
 		done
+        if [[ $backend == "local://" ]]; then
+            sudo umount $path            
+        fi
+
 	done
 }
 
@@ -267,7 +265,7 @@ if [[ ! -z $TESTALL ]]; then
 	retval=$?
 	if [[ $retval -ne 0 ]]; then
 		debug "FSCK returned $retval"
-		alldone
+		failandexit
 	fi
 	sudo mount.s3ql $s3ql_quiet --authfile ${auth_file} local://./fs2.21 ${mountpoints[v2_21]}
 
@@ -306,17 +304,18 @@ fi
 if [[ ! -z $TESTALL ]]; then
 	STARTTEST "local path mounted device"
 
-	mkdir -p usb
-	sudo mount $backupdevice usb > /dev/null
-	res=$?
-	if [[ $res -ne 0 ]]; then
-		debug "Failed to mount usb device for test"
-		PASSFAIL 1
+	testpath="/tmp/usb"
+	dummypath=$(mount_localdevice $testpath)
+	status=$?
+
+	if [[ $status -ne 0 ]]; then
+		debug "Failed to mount usb device."
+		PASSFAIL $FAIL
 	else
 		# expect an populated local path
 		localpath=$(get_localpath)
-		sudo umount usb
-		if [[ "$localpath" != "usb" ]]; then
+		sudo umount $testpath
+		if [[ "$localpath" == "$testpath" ]]; then
 			debug "Local path: $localpath"
 			PASSFAIL $PASS
 		else
@@ -331,7 +330,9 @@ if [[ ! -z $TESTALL ]]; then
 	STARTTEST "Mount Valid USB"
 	# expect the mount path of the USB memory
 	mountpath=$(mount_localdevice)
-	sudo umount $mountpath
+	if [[ ! -z $mountpath ]]; then
+		sudo umount $mountpath
+	fi
 	if [[ $mountpath != $device_mountpath ]]; then
 		PASSFAIL $FAIL
 	else
@@ -586,6 +587,41 @@ if [[ ! -z $TESTALL ]]; then
 fi
 #  ----------------------------------------------------
 
+
+# ------- TEST  FSCK on existing path but non existant FS------------
+
+if [[ ! -z $TESTALL ]]; then
+	backend="local://"
+		for version in "${versions[@]}"
+		do
+			STARTTEST "FSCK for '$backend' with version '$version' on existing path and non existant FS"
+			# expect '18' as return value
+			status=$FAIL
+			# need storage urls
+			unset storage_urls
+			declare -A storage_urls
+			unset CA
+		    declare -A CA
+	    	phonypath="/tmp/phonypath"
+	    	sudo mkdir -p $phonypath 
+			get_urls "$phonypath"
+			if [[ $? -eq $PASS ]]; then
+				fsck $version
+				retval=$?
+				if [[ $retval -eq 16 || $retval -eq 18 ]]; then
+					# Missing s3ql filesystem or invalid storage url (can happen on usb when the path is not there.)
+					status=$PASS
+				else
+					debug "FSCK returned '$retval'"
+				fi
+			fi	
+			sudo rm -rf $phonypath
+			PASSFAIL $status
+		done
+fi
+#  ----------------------------------------------------
+
+
 # ------- TEST  Create FS ------------
 if [[ ! -z $TESTALL ]]; then
 	# expect a S3ql FS on storage urls
@@ -599,26 +635,31 @@ if [[ ! -z $TESTALL ]]; then
 			declare -A storage_urls
 			unset CA
 		    declare -A CA
-		    if [[ $backend == "s3://" ]]; then
-		    	path=$s3bucket
-		    	if [[ $version == "v2_7" ]]; then
-		    		debug "Create FS on S3 not supported for 2.7 version"
-   					PASSFAIL $SKIP
-   					break
-   				fi
-
-		    else
-		    	path=$(get_localpath)
-	   	        if [[ -z "$path" ]]; then
-	            	# no mem mounted (and should not....), try to get one
-		            path=$(mount_localdevice)
-		            if [[ -z "$path" ]]; then
-		                # there is no suitable device mounted
-		                debug "No Suitable Target"
-		                PASSFAIL $FAIL
-		            fi
-	        	fi
-	    	fi
+		    case $backend in
+		    	"s3://")
+			    	path=$s3bucket
+			    	if [[ $version == "v2_7" ]]; then
+			    		debug "Create FS on S3 not supported for 2.7 version"
+	   					PASSFAIL $SKIP
+	   					continue
+	   				fi
+	   				;;
+	   			"local://")
+			    	path=$(get_localpath)
+		   	        if [[ -z "$path" ]]; then
+		            	# no mem mounted (and should not....), try to get one
+			            path=$(mount_localdevice)
+			            if [[ -z "$path" ]]; then
+			                # there is no suitable device mounted
+			                debug "No Suitable Target"
+			                PASSFAIL $FAIL
+			                continue
+			            fi
+		        	fi
+		        	;;
+		        *)
+					;;
+			esac
 
 			get_urls $path
 
@@ -644,26 +685,32 @@ if [[ ! -z $TESTALL ]]; then
 			declare -A storage_urls
 			unset CA
 		    declare -A CA
-		    if [[ $backend == "s3://" ]]; then
-		    	path=$s3bucket
-		    	if [[ $version == "v2_7" ]]; then
-		    		debug "FS on S3 not supported for 2.7 version"
-   					PASSFAIL $SKIP
-   					break
-   				fi
-		    else
-		    	path=$(get_localpath)
-	   	        if [[ -z "$path" ]]; then
-	            # no mem mounted (and should not....), try to get one
-	            path=$(mount_localdevice)
-	            if [[ -z "$path" ]]; then
-	                # there is no suitable device mounted
-	                debug "No Suitable Target"
-	                PASSFAIL $FAIL
-	            fi
-	        fi
+		    case $backend in
+		    	"s3://")
+			    	path=$s3bucket
+			    	if [[ $version == "v2_7" ]]; then
+			    		debug "Create FS on S3 not supported for 2.7 version"
+	   					PASSFAIL $SKIP
+	   					continue
+	   				fi
+	   				;;
+	   			"local://")
+			    	path=$(get_localpath)
+		   	        if [[ -z "$path" ]]; then
+		            	# no mem mounted (and should not....), try to get one
+			            path=$(mount_localdevice)
+			            if [[ -z "$path" ]]; then
+			                # there is no suitable device mounted
+			                debug "No Suitable Target"
+			                PASSFAIL $FAIL
+			                continue
+			            fi
+		        	fi
+		        	;;
+		        *)
+					;;
+			esac
 
-		    fi
 			get_urls $path
 			mount_fs $version ${mountpoints[$version]} 
 			
@@ -674,16 +721,6 @@ if [[ ! -z $TESTALL ]]; then
 fi
 #  ----------------------------------------------------
 
-# ------- TEST  no fs mounted or available ------------
-if [[ ! -z $TESTALL ]]; then
-	STARTTEST "no fs mounted or available"
-	# expect url paths for all versions
-
-
-	grep -qs $mount_v2_21 /proc/mounts
-	PASSFAIL $?
-fi
-#  ----------------------------------------------------
 
 
 # restore configs and output stats.
