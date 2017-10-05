@@ -68,22 +68,28 @@ function s3ql_kill {
 }
 
 function check_valid_device {
-    local mntpoint
+    local fs
     local backend=$1
     local device
+    local version=$2
 
     debug "Check validity of the backend"
     debug "Backend: $1"
     if [[ $backend == "local://" ]]; then
-        mntpoint=$(sed -n "s%${backend}\([^[:space:]]*\)\/.*%\1% p" /proc/mounts)
-        mntpoint=$(dirname ${mntpoint})
-        debug "Mountpoint: '$mntpoint'"
-        device=$(sed -n "s%\(\/dev/sd[^[:space:]]*\).*${mntpoint}.*%\1% p" /proc/mounts)
-        debug "Device: '$device'"
-        if [[ -b $device ]]; then
-            status=$PASS
-        else
-            status=$FAIL
+        #mntpoint=$(sed -n "s%${backend}\([^[:space:]]*\)\/.*%\1% p" /proc/mounts)
+        # do not include possible trailing "/" of the mountpoint
+        fs=$(sed -n "s%local://\([^[:space:]]*\)/\? ${mountpoints[$version]}.*%\1% p" /proc/mounts)
+        debug "Local filesystems found: '$fs'"
+        if [[ ! -z $fs ]]; then
+            fs=$(dirname ${fs})
+            device=$(sed -n "s%\(\/dev/sd[^[:space:]]*\).*${fs}.*%\1% p" /proc/mounts)
+            debug "Device: '$device'"
+            if [[ -b $device ]]; then
+                status=$PASS
+            else
+                status=$FAIL
+                break
+            fi
         fi
     else
         debug "No device needed for non-local backends"
@@ -120,7 +126,7 @@ function get_valid_backends {
 	    for version in "${!current_backends[@]}";
 	    do
 	        debug "$version --- ${current_backends[$version]}"
-            check_valid_device ${current_backends[$version]}
+            check_valid_device ${current_backends[$version]} $version
             devicestatus=$?
 
 	        # Unmount if the backend has changed, if s3ql is not running or if the target device is not present anymore
@@ -362,6 +368,11 @@ function fsck {
             # 2.7 returns 1 for a missing bucket
             fsck_result=17
         fi
+        if [[ $fsck_msg == *"_pickle.UnpicklingError: unpickling stack underflow"* ]]; then
+            # 2.7 returns if it is given a new FS
+            fsck_result=$PossibleFSTooNew
+        fi
+
     fi
 
     return $fsck_result

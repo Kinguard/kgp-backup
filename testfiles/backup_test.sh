@@ -25,7 +25,7 @@ DEBUG=1
 
 
 TESTALL=""
-TESTALL=1
+#TESTALL=1
 
 TESTCOUNT=0
 PASSED=0
@@ -618,6 +618,37 @@ if [[ ! -z $TESTALL ]]; then
 			sudo rm -rf $phonypath
 			PASSFAIL $status
 		done
+fi
+#  ----------------------------------------------------
+
+# ------- TEST  FSCK on existing FS with wrong passphrase------------
+
+if [[ 1 || ! -z $TESTALL ]]; then
+	backend="local://"
+	for version in "${versions[@]}";do
+		STARTTEST "FSCK for '$version' with wrong PS"
+		# expect '17' as return value
+		status=$FAIL
+		# need storage urls
+		unset storage_urls
+		declare -A storage_urls
+		unset CA
+	    declare -A CA
+		phonypath="./phony"
+		get_urls "$phonypath"
+		if [[ $? -eq $PASS ]]; then
+			fsck $version
+			retval=$?
+			debug "FSCK returned '$retval'"
+			if [[ $retval -eq 17 ]]; then
+				# Missing s3ql filesystem or invalid storage url (can happen on usb when the path is not there.)
+				status=$PASS
+			else
+				debug "FSCK returned '$retval'"
+			fi
+		fi	
+		PASSFAIL $status
+	done
 fi
 #  ----------------------------------------------------
 

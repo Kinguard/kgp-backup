@@ -26,6 +26,7 @@ function exit_fail {
     echo "  70 : No valid backend specified "
     echo "  71 : No suitable target "
     echo "  75 : Missing filesystem during restore "
+    echo "  80 : Possible FS too new"
     echo "  90 : Missing 'bucket' for s3 backend "
     echo "  99 : Unit locked"
 
@@ -153,11 +154,12 @@ else
     removelinks $nextcloud_dir
     check_fail $? "Failed remove symlinks to NextCloud dirs"
 
-    echo "Running FSCK"
     for version in "${versions[@]}"
     do
+        echo -n "Running FSCK for version '$version' ..."
         fsck $version
         retval=$?
+        echo "  DONE, result '$retval'"
         debug "Version: $version, Valid: $retval"
         valid_fs[$version]=$retval
     done
@@ -179,6 +181,10 @@ else
             17)
                 exit_fail ${valid_fs[$version]} "Invalid passphrase"
                 ;;
+
+            $PossibleFSTooNew)
+                exit_fail ${valid_fs[$version]} "Unexpected error, possible 2.21 FS with 2.7 backend."
+                ;;
             *)
                 debug "Unexpected error from FSCK"
                 exit_fail ${valid_fs[$version]} "Unexpected error from FSCK"
@@ -191,7 +197,7 @@ else
         for version in "${versions[@]}"
         do
             if [[ ${valid_fs[$version]} -eq 0 || ${valid_fs[$version]} -eq 128 ]]; then
-                debug "Trying to mount FS with '$version'"
+                echo "Trying to mount FS with '$version'"
                 if [[ ! -z "$mountpoint" ]]; then
                     # override mountpoint, mount the first valid FS found
                     # prio order is set by "versions" array
