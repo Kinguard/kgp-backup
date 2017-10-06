@@ -11,6 +11,7 @@ Depends: ${misc:Depends},
  s3ql,
  rsync,
  anacron,
+ php-secop,
  opi-control
 Conflicts: 
 Description: OPI backup scripts
