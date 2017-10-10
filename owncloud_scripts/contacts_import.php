@@ -4,6 +4,15 @@
 */
 
 set_time_limit(0);
+ini_set('display_errors', 'On');
+error_reporting(E_ALL);
+
+
+function makeuri()
+{
+	// simple GUID with .vcf suffix
+	return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x.vcf', mt_rand(0, 65535), mt_rand(0, 65535), mt_rand(0, 65535), mt_rand(16384, 20479), mt_rand(32768, 49151), mt_rand(0, 65535), mt_rand(0, 65535), mt_rand(0, 65535));
+}
 
 require_once "lib/base.php";
 
@@ -16,9 +25,8 @@ OCP\App::checkAppEnabled('contacts');
 
 echo "App enabled\n";
 
-use OCA\Contacts\VObject\VCard as MyVCard;
-use OCA\Contacts\App;
-use Sabre\VObject;
+use OCA\DAV\AppInfo\Application;
+use OCA\DAV\CardDAV\CardDavBackend;
 
 $inpath = ".";
 
@@ -29,13 +37,9 @@ if( count( $argv ) >= 2 )
 
 echo "Using inpath: $inpath\n";
 
-function import($filename, $user, $app, $bookid)
+function import($filename, $user, $cdb, $bookid)
 {
 	echo "Importing $filename into $bookid\n";
-	$addressBook = $app->getAddressBook('local', $bookid);
-	if(!$addressBook->hasPermission(\OCP\PERMISSION_CREATE)) {
-		return false;
-	}
 
 	$file = file_get_contents( $filename );
 
@@ -59,6 +63,7 @@ function import($filename, $user, $app, $bookid)
 			$card[] = $line;
 		}
 	}
+
 	if(count($parts) === 0) {
 		echo "No contacts found in: $filename\n";
 		return false;
@@ -70,47 +75,25 @@ function import($filename, $user, $app, $bookid)
 	$processed = 0;
 
 	foreach($parts as $part) {
-		try {
-			$vcard = VObject\Reader::read($part);
-		} catch (VObject\ParseException $e) {
-			try {
-				$vcard = VObject\Reader::read($part, VObject\Reader::OPTION_IGNORE_INVALID_LINES);
-				$partially += 1;
-				echo 'Import: Retrying reading card. Error parsing VCard: ' . $e->getMessage() . '\n';
-			} catch (\Exception $e) {
-				$failed += 1;
-				echo 'Import: skipping card. Error parsing VCard: ' . $e->getMessage() . '\n';
-				continue; // Ditch cards that can't be parsed by Sabre.
-			}
-		}
-		try {
-			$vcard->validate(MyVCard::REPAIR|MyVCard::UPGRADE);
-		} catch (\Exception $e) {
-			echo 'Error validating vcard: ' . $e->getMessage() . '\n';
-			$failed += 1;
-		}
-
-		try {
-			if($addressBook->addChild($vcard)) {
+		try
+		{
+			$uri = makeuri();
+			if( $cdb->createCard( $bookid, $uri, $part ) != null )
+			{
 				$imported += 1;
-			} else {
+			}
+			else
+			{
 				$failed += 1;
 			}
-		} catch (\Exception $e) {
-			echo 'Error importing vcard: ' . $e->getMessage() . $nl . $vcard->serialize() .'\n';
+		}
+		catch( Exception $e )
+		{
+			print "Import card failed ".$e->getMessage()."\n";
 			$failed += 1;
 		}
 		$processed += 1;
 	}
-
-	/* Probably not needed
-	if( !\OCP\Config::setUserValue($user, 'contacts', 'lastgroup', 'all') )
-	{
-		echo "Failed to set config user value\n";
-	}
-
-	\OCA\Contacts\Hooks::indexProperties();
-	*/
 
 	echo "Imported $imported contacts $partially partially and $failed failed\n";
 
@@ -118,47 +101,51 @@ function import($filename, $user, $app, $bookid)
 }
 
 
-
-$dirs = glob($inpath ."/*", GLOB_ONLYDIR | GLOB_NOSORT);
-
-foreach( $dirs as $dir )
+try
 {
-	$user = pathinfo( $dir, PATHINFO_BASENAME );
-	
-	OC_User::setUserId($user);
 
-	$app = new App($user);
+	$dirs = glob($inpath ."/*", GLOB_ONLYDIR | GLOB_NOSORT);
 
-	$backend = $app->getBackend("local");
-	if(!$backend->hasAddressBookMethodFor(\OCP\PERMISSION_CREATE)) {
-		echo 'This backend does not support adding address books';
-		break;
-	}
 
-	$books = glob( $dir . "/files/sysbackup/contacts/*", GLOB_NOSORT );
+	$app = new Application();
+	$cDB = $app->getContainer()->query(CardDavBackend::class);
 
-	foreach( $books as $book )
+
+	foreach( $dirs as $dir )
 	{
-		if( ! is_file( $book ) )
-		{
-			continue;
-		}
-		$name = pathinfo( $book, PATHINFO_BASENAME);
-		echo "User $user has book $name\n";
+		$user = pathinfo( $dir, PATHINFO_BASENAME );
 
-		$id = $backend->createAddressBook(['displayname' => "Imported_" . pathinfo($name,PATHINFO_FILENAME) ]);
-		
-		if ( $id === false )
-		{
-			echo "Failed to create address book\n";
-			break;
-		}
+		OC_User::setUserId($user);
 
-		if( ! import( $book, $user, $app, $id) )
+		$books = glob( $dir . "/files/sysbackup/contacts/*", GLOB_NOSORT );
+
+		foreach( $books as $book )
 		{
-			echo "Failed to import $name\n";
-			// For now delete failed import
-			$backend->deleteAddressBook( $id );
+			if( ! is_file( $book ) )
+			{
+				continue;
+			}
+			$name = pathinfo( $book, PATHINFO_BASENAME);
+			$displayname = "Imported_" . pathinfo($name,PATHINFO_FILENAME);
+			echo "User $user has book $name\n";
+
+			$id = $cDB->createAddressBook("principals/users/$user",$displayname,['{DAV:}displayname' => $displayname  ]);
+			if ( $id === false )
+			{
+				echo "Failed to create address book\n";
+				break;
+			}
+
+			if( ! import( $book, $user, $cDB, $id) )
+			{
+				echo "Failed to import $name\n";
+				// For now delete failed import
+				$cDB->deleteAddressBook( $id );
+			}
 		}
 	}
+}
+catch( Exception $e)
+{
+	print "Failed to import addressbook: ".$e->getMessage()."\n";
 }
