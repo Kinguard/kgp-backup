@@ -61,10 +61,11 @@ s3ql_retval=$?
 # acknowledge the "start message"
 kgp-notifier -a $msgid
 
+# link existing backups
+"./link_backup.sh" &>> $error_log
+
 if [ $s3ql_retval -ne 0 ]; then
 	report_error "Backup failed"
-else
-	"./link_backup.sh" &>> $error_log
 fi
 
 
