@@ -79,7 +79,7 @@ EOF`
 echo "Duplicate backup"
 if [ -n "$last_backup" ]; then
     echo "Copying $last_backup to $new_backup..."
-    ${PYPATH[$CURRENT_VERSION]}${s3qlpath[$CURRENT_VERSION]}s3qlcp "$last_backup" "$new_backup"
+    sudo ${PYPATH[$CURRENT_VERSION]}${s3qlpath[$CURRENT_VERSION]}s3qlcp "$last_backup" "$new_backup"
 
     # Make the last backup immutable
     # (in case the previous backup was interrupted prematurely)
@@ -136,7 +136,7 @@ else
 	echo "Missing Calendar Export Script"
 fi
 
-contactsexport="/usr/share/nextcloud/calendars_export.php"
+contactsexport="/usr/share/nextcloud/contacts_export.php"
 if [[ -e $contactsexport ]]; then
 	php "$contactsexport" "./${new_backup}/${userdata}"
 else
@@ -225,16 +225,17 @@ do
 		if [[ -e ${mountpoints[$version]} ]]; then
 			echo "Expire backups for version '$version'"
 			cd ${mountpoints[$version]}
-			case $version in
-				"v2_21")
-					expire_backups --use-s3qlrm --reconstruct-state 1 7 14 31 90 180 360
-					;;
-				*)
-					expire_backups --reconstruct-state 1 7 14 31 90 180 360
-					;;
-			esac
+			sudo ${PYPATH[$version]}${s3qlpath[$version]}expire_backups --use-s3qlrm --reconstruct-state 1 7 14 31 90 180 360
+			#case $version in
+			#	"v2_21")
+			#		expire_backups --use-s3qlrm --reconstruct-state 1 7 14 31 90 180 360
+			#		;;
+			#	*)
+			#		${PYPATH[$version]} expire_backups --reconstruct-state 1 7 14 31 90 180 360
+			#		;;
+			#esac
 			echo "Syncing filesystem"
-			${PYPATH[$version]}${s3qlpath[$version]}s3qlctrl flushcache ${mountpoints[$CURRENT_VERSION]}
+			sudo ${PYPATH[$version]}${s3qlpath[$version]}s3qlctrl flushcache ${mountpoints[$version]}
 		else
 			echo "No legacy backups mounted"
 		fi

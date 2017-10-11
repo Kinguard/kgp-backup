@@ -59,7 +59,7 @@ echo "MSGID: $msgid"
 ./s3ql_backup.sh &> $error_log
 s3ql_retval=$?
 # acknowledge the "start message"
-kgp-notifier -a $msgid
+msgcount=$(kgp-notifier -a $msgid)
 
 # link existing backups
 "./link_backup.sh" &>> $error_log
