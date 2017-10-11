@@ -33,7 +33,8 @@ case "$1" in
 	
     if [ ! -e /var/opi/etc/backup/auth.conf ]
 	then
-		cp /usr/share/opi-backup/auth.conf /var/opi/etc/backup
+		mkdir -p /var/opi/etc/backup
+		cp /usr/share/opi-backup/auth.conf /var/opi/etc/backup/
 		chmod 0600 /var/opi/etc/backup/auth.conf
 	fi
 

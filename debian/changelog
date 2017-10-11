@@ -1,3 +1,9 @@
+opi-backup (2.1) vili; urgency=medium
+
+  * Add deps and export functions. 
+
+ -- PA Nilsson <pa@openproducts.se>  Wed, 11 Oct 2017 11:57:07 +0200
+
 opi-backup (2.0) vili; urgency=medium
 
   * Added support for both s3ql 2.7 and 2.21 versions. 
