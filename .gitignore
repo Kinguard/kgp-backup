@@ -3,5 +3,8 @@ debian/files
 debian/*.log
 debian/*.substvars
 debian/*helper
+debian/debhelper-build-stamp
+testfiles/__pycache__
 debian/opi-backup/
 *sublime*
+testfiles/*bak*

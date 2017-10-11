@@ -166,7 +166,7 @@ def AuthLogin():
             raise RuntimeError('Unable to get server challange')
             return False
 
-        #print("Authenticated, got token from auth-server.")
+        print("Authenticated, got token from auth-server.")
         return token
 
     except http.client.HTTPException as e:

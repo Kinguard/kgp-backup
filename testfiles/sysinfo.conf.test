@@ -1,0 +1,5 @@
+unit_id=3feae012-2dfc-4aee-972a-532f15e99009
+ca_path=/etc/opi/op_ca.pem
+dns_key=/etc/opi/dnspriv.pem
+dnsenabled=1
+sys_key=/var/opi/etc/syspriv.pem
