@@ -1,3 +1,9 @@
+opi-backup (2.2.1) vili; urgency=medium
+
+  * Updated import and export scripts for Nextcloud
+
+ -- Tor Krill <tor@openproducts.se>  Thu, 12 Oct 2017 20:44:05 +0200
+
 opi-backup (2.2) vili; urgency=medium
 
   * Added exprire backup support for s3ql 2.7 
