@@ -66,7 +66,7 @@ foreach( $users as $user )
 
 		$contacts = '';
 		foreach($cards as $contact) {
-			$contacts .= $contact["carddata"];
+			$contacts .= $contact["carddata"]."\n";
 		}
 
 		file_put_contents( $filename, $contacts);
