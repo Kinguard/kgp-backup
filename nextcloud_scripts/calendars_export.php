@@ -1,7 +1,10 @@
 <?php
+use OCA\DAV\AppInfo\Application;
+use OCA\DAV\CalDAV\CalDavBackend;
 set_time_limit(0);
 
 require_once "lib/base.php";
+require_once "/usr/share/php/PhpSecop/Secop.php";
 
 if (!OC::$CLI) {
 	echo "This script can be run from the command line only" . PHP_EOL;
@@ -10,35 +13,61 @@ if (!OC::$CLI) {
 
 OCP\App::checkAppEnabled('calendar');
 
-echo "Calendar enabled\n";
 $outpath = ".";
-
 if( count( $argv ) >= 2 )
 {
 	$outpath = $argv[1];
 }
 
-$users = OCP\User::getUsers();
-
-foreach( $users as $user )
+try
 {
-	echo "User: $user\n";
-	// Ignore errors for now
-	$dir = $outpath . "/" . $user . "/files/sysbackup/calendars";
-	mkdir( $dir , 0700, true);
-	if( ! is_dir( $dir ) )
+	$users = OCP\User::getUsers();
+
+	// Get users directly out of secop
+	$s = new Secop();
+	$s->sockauth();
+
+	list($status, $rep) = $s->getusers();
+	if ( $status )
 	{
-		echo "Failed to create directory: $dir\n";
-		continue;
+		foreach( $rep["users"] as $user )
+		{
+			$users[]=$user;
+		}
 	}
 
-	$calendars = OC_Calendar_Calendar::allCalendars($user);
-	foreach( $calendars as $calendar)
+	$app = new Application();
+	$cDB = $app->getContainer()->query(CalDavBackend::class);
+
+	foreach( $users as $user )
 	{
-		$filename = $dir . '/' . str_replace(' ', '-', $calendar['displayname']) . '.ics';
-		echo "File: $filename\n";
-		$caldata = OC_Calendar_Export::export($calendar["id"], OC_Calendar_Export::CALENDAR);
-		file_put_contents( $filename, $caldata);
+		// Ignore errors for now
+		$dir = $outpath . "/" . $user . "/files/sysbackup/calendars";
+		mkdir( $dir , 0700, true);
+		if( ! is_dir( $dir ) )
+		{
+			echo "Failed to create directory: $dir\n";
+			continue;
+		}
+
+		$calendars = $cDB->getCalendarsForUser("principals/users/$user");
+
+		foreach( $calendars as $calendar)
+		{
+			$filename = $dir . '/' . str_replace(' ', '-', $calendar['uri']) . '.ics';
+			$calobjs = $cDB->getCalendarObjects($calendar["id"]);
+			$calstr = "";
+			foreach( $calobjs as $cobj )
+			{
+				$caldata = $cDB->getCalendarObject( $calendar["id"], $cobj["uri"]);
+				$calstr  .= $caldata["calendardata"]."\n";
+			}
+
+			file_put_contents( $filename, $calstr);
+		}
 	}
 }
-
+catch( Exception $e)
+{
+	print "Export failed: ".$e->getMessage()."\n";
+}
