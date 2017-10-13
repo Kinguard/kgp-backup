@@ -9,6 +9,7 @@ Package: opi-backup
 Architecture: all
 Depends: ${misc:Depends},
  s3ql,
+ s3ql-legacy,
  rsync,
  anacron,
  php-secop,

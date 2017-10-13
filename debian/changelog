@@ -1,3 +1,9 @@
+opi-backup (2.3) vili; urgency=medium
+
+  * Added dep on s3ql-legacy 
+
+ -- PA Nilsson <pa@openproducts.se>  Thu, 12 Oct 2017 07:58:14 +0200
+
 opi-backup (2.2) vili; urgency=medium
 
   * Added exprire backup support for s3ql 2.7 
