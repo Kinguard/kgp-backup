@@ -37,7 +37,7 @@ if( count( $argv ) >= 2 )
 
 echo "Using inpath: $inpath\n";
 
-function import($filename, $user, $cdb, $bookid)
+function import($filename, $cdb, $bookid)
 {
 	echo "Importing $filename into $bookid\n";
 
@@ -115,8 +115,6 @@ try
 	{
 		$user = pathinfo( $dir, PATHINFO_BASENAME );
 
-		OC_User::setUserId($user);
-
 		$books = glob( $dir . "/files/sysbackup/contacts/*", GLOB_NOSORT );
 
 		foreach( $books as $book )
@@ -136,7 +134,7 @@ try
 				break;
 			}
 
-			if( ! import( $book, $user, $cDB, $id) )
+			if( ! import( $book, $cDB, $id) )
 			{
 				echo "Failed to import $name\n";
 				// For now delete failed import
