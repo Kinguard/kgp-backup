@@ -41,19 +41,6 @@ function check_fail {
     fi
 }
 
-grep -q $luksdevice /proc/mounts
-if [[ $? -ne 0 ]]; then
-    exit_fail 99 "Unit locked"
-fi
-
-if [ -e $target_file ]; then
-	source  $target_file
-else   
-    echo "No target file"
-	exit_fail $NoSuitableTarget
-fi
-
-
 # A POSIX variable
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
 
@@ -78,6 +65,26 @@ while getopts "b:a:m:rd" opt; do
 	   ;;
     esac
 done
+
+
+if [ $restore -ne 1 ]
+then
+	grep -q $luksdevice /proc/mounts
+	if [[ $? -ne 0 ]]; then
+    		exit_fail 99 "Unit locked"
+	fi
+
+	if [ -e $target_file ]; then
+		source  $target_file
+	else   
+    		echo "No target file"
+		exit_fail $NoSuitableTarget
+	fi
+else
+	# We are doing restore, no cryptvolume available yet
+	# override some defaults
+	s3ql_cachedir=/tmp/s3qltmp
+fi
 
 
 
