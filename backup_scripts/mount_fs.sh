@@ -102,7 +102,7 @@ for b in "${backends[@]}"; do
 done
 if [[ $backend_ok -ne $PASS ]]; then
     echo "'$backup' is not a valid backend"
-    exit_fail NoBackendSpecified
+    exit_fail $NoBackendSpecified
 fi
 
 
