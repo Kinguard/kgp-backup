@@ -2,7 +2,8 @@
 #set -x
 
 DEBUG=0
-DIR=$(dirname "${BASH_SOURCE[0]}")
+src=$(realpath "${BASH_SOURCE[0]}")
+DIR=$(dirname $src)
 cd $DIR
 source /etc/opi/sysinfo.conf
 source backup.conf
@@ -92,6 +93,11 @@ shift $((OPTIND-1))
 
 [ "$1" = "--" ] && shift
 
+if [[ "$backend" == "none" ]]; then
+    debug "Nothing to do for backend '$backend'"
+    exit 0
+fi
+
 backend_ok=$FAIL
 for b in "${backends[@]}"; do
     if [[ $b == $backend ]]; then
@@ -101,7 +107,7 @@ for b in "${backends[@]}"; do
     fi
 done
 if [[ $backend_ok -ne $PASS ]]; then
-    echo "'$backup' is not a valid backend"
+    echo "'$backend' is not a valid backend"
     exit_fail $NoBackendSpecified
 fi
 

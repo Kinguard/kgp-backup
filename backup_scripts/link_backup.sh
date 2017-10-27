@@ -1,6 +1,7 @@
 #!/bin/bash
 
-DIR=$(dirname "${BASH_SOURCE[0]}")
+src=$(realpath "${BASH_SOURCE[0]}")
+DIR=$(dirname $src)
 cd $DIR
 
 source mount_fs.sh
