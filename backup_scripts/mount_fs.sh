@@ -192,9 +192,13 @@ else
             $PossibleFSTooNew)
                 exit_fail ${valid_fs[$version]} "Unexpected error, possible 2.21 FS with 2.7 backend."
                 ;;
+            128)
+                debug "'$version' Filesystem repaired"
+                ;;
             *)
                 debug "Unexpected error from FSCK"
                 exit_fail ${valid_fs[$version]} "Unexpected error from FSCK"
+                ;;
         esac
     done
 
@@ -213,6 +217,7 @@ else
                     status=$?
                     if [[ $status -eq 0 ]]; then
                         debug "Mounted $backend"
+			valid_backends[$version]=$backend
                         break
                     fi
                     check_fail $status "Failed to mount FS"

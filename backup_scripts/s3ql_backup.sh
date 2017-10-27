@@ -8,8 +8,6 @@ echo "Mount complete"
 
 new_backup=`date "+%Y-%m-%d_%H:%M:%S"`
 
-#set -x
-
 if [ ! -d $logdir ]; then
 	mkdir $logdir
 fi
@@ -48,9 +46,8 @@ if [[ $backend == "s3op://" ]]; then
 		exit 1
 		fi
 	fi
-
 	if [ $bytes_used -gt $quota ]; then
-		echo "Insufficient space on target"
+		echo "Insufficient space on target '$bytes_used' vs $quota"
 		exit 1
 	fi
 else
@@ -81,9 +78,6 @@ if [ -n "$last_backup" ]; then
     echo "Copying $last_backup to $new_backup..."
     sudo ${PYPATH[$CURRENT_VERSION]}${s3qlpath[$CURRENT_VERSION]}s3qlcp "$last_backup" "$new_backup"
 
-    # Make the last backup immutable
-    # (in case the previous backup was interrupted prematurely)
-    # ${s3ql_path}s3qllock "$last_backup"
 else
 	# Check if dirs exist on backup target
 	if [ ! -d $new_backup ]; then
@@ -91,25 +85,9 @@ else
 		mkdir $new_backup
 	fi
 
-	#if [ ! -d "${new_backup}/${systemdir}" ]; then
-	#	echo "System dir not present, creating"
-	#	mkdir "${new_backup}/${systemdir}"
-	#fi
-	# userdata dir will be created by rsync below
 fi
 
-script_version=$(dpkg -s opi-backup | sed -n 's/Version:\s*\([0-9\.]*\)/\1/p')
-echo "Version: $script_version"
-nbr_dots=$(grep -o "\." <<< "$script_version" | wc -l)
-if [ $nbr_dots -gt 1 ]; then
-	echo "WARN: Only one level of minor number is supported, version number is not to be trusted."
-	version=$script_version
-	
-else
-	major=$(echo $script_version | sed -n 's/\([0-9]*\)\.[0-9]*/\1/p')
-	minor=$(echo $script_version | sed -n 's/[0-9]*\.\([0-9]*\)/\1/p')
-	version=$((major*1000+$((minor)) ))
-fi
+version=$(dpkg -s opi-backup | sed -n 's/Version:\s*\([0-9\.]*\)/\1/p')
 
 # write temporary "fail" status msg
 echo '{"date":"'$new_backup'", "status":"fail", "script_version":"'$version'"}' > ./${new_backup}/status.json
@@ -146,6 +124,7 @@ fi
 echo "Copy system files"
 rsync -qaHAXx --delete-during --delete-excluded --partial \
     --exclude $nextcloud_dir \
+    --exclude $s3ql_cachedir \
     --exclude "mysql" \
     "/var/opi" \
     "/usr/share/nextcloud/config/config.php" \
@@ -166,6 +145,8 @@ if [ $rsync_user -ne 0 ] || [ $rsync_system -ne 0 ]; then
 		let "rsync_retval=$rsync_user+$rsync_system"		#return something that maybe can be useful...
 		echo "RSYNC RetVal: $rsync_retval"
 	fi
+else
+	rsync_retval=0
 fi
 set -e
 
@@ -219,27 +200,14 @@ echo "Expire backups"
 # Expire old backups
 
 
-for version in "${versions[@]}"
+for version in "${!valid_backends[@]}"
 do
-	if [[ ${valid_fs[$version]} -eq 0 || ${valid_fs[$version]} -eq 128 ]]; then
-		if [[ -e ${mountpoints[$version]} ]]; then
-			echo "Expire backups for version '$version'"
-			cd ${mountpoints[$version]}
-			sudo ${PYPATH[$version]}${s3qlpath[$version]}expire_backups --use-s3qlrm --reconstruct-state 1 7 14 31 90 180 360
-			#case $version in
-			#	"v2_21")
-			#		expire_backups --use-s3qlrm --reconstruct-state 1 7 14 31 90 180 360
-			#		;;
-			#	*)
-			#		${PYPATH[$version]} expire_backups --reconstruct-state 1 7 14 31 90 180 360
-			#		;;
-			#esac
-			echo "Syncing filesystem"
-			sudo ${PYPATH[$version]}${s3qlpath[$version]}s3qlctrl flushcache ${mountpoints[$version]}
-		else
-			echo "No legacy backups mounted"
-		fi
-	fi
+	echo "Expire backups for version '$version'"
+	cd ${mountpoints[$version]}
+	sudo ${PYPATH[$version]}${s3qlpath[$version]}expire_backups --use-s3qlrm --reconstruct-state 1 7 14 31 90 180 360
+
+	echo "Syncing filesystem"
+	sudo ${PYPATH[$version]}${s3qlpath[$version]}s3qlctrl flushcache ${mountpoints[$version]}
 done
 
 echo "Exit with '$rsync_retval'"

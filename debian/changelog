@@ -1,3 +1,11 @@
+opi-backup (2.3.2) vili; urgency=medium
+
+  * Updated link-scripts
+  * Excluding s3ql cache from backup
+  * Using psutil to read disk info for quota calculations 
+
+ -- PA Nilsson <pa@openproducts.se>  Fri, 27 Oct 2017 14:53:08 +0200
+
 opi-backup (2.3.1) vili; urgency=medium
 
   * Updated import and export scripts for Nextcloud

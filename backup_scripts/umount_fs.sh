@@ -2,7 +2,6 @@
 
 cd $(dirname "${BASH_SOURCE[0]}")
 source backup.conf
-source /etc/opi/sysinfo.conf
 source backup.lib.sh
 
 if [ -e $target_file ]; then
@@ -27,6 +26,14 @@ if [[ ${#valid_backends[@]} -gt 0 ]]; then
 		status=$?
 		debug "Umount status: '$status'"
 	done
+    echo "Remove any existing old symlinks"
+    removelinks $nextcloud_dir
+    retval=$1
+    if [[ $retval -ne $PASS ]]; then
+    	debug "Failed to remove symlinks"
+    fi
+
+
 else
 	debug "No valid backends"
 	status=0

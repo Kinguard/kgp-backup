@@ -22,7 +22,8 @@ versions=( "v2_21" "v2_7") # order here is important, it is prio order when only
 
 
 declare -A mountpoints
-mountpoints=([v2_7]="${mount_v2_7}" [v2_21]="${mount_v2_21}")
+BackupRootPath=$(kgp-sysinfo -s -p | grep "BackupRootPath" | awk '{print $2}')
+mountpoints=([v2_7]="${BackupRootPath}${mount_v2_7}" [v2_21]="${BackupRootPath}${mount_v2_21}")
 
 declare -A local_fsprefix
 local_fsprefix=([v2_7]="${local_fsprefix_v2_7}" [v2_21]="${local_fsprefix_v2_21}")
@@ -37,7 +38,7 @@ declare -A PYPATH
 PYPATH=([v2_7]="${PYPATH_v2_7}" [v2_21]="")
 
 declare -A s3qlpath
-s3qlpath=([v2_7]="${s3qlpath_v2_7}" [v2_21]="")
+s3qlpath=([v2_7]="${s3qlpath_v2_7}" [v2_21]="${s3qlpath_v2_21}")
 
 ###  define ansi colors
 red="\033[0;31m"
@@ -56,7 +57,10 @@ function debug {
 
 function s3ql_running {
     debug "Checking if s3ql is running"
-    ps ax | grep 's3ql' | grep -qv 'grep'
+    if [[ ! -z "$1" ]]; then
+        path=${s3qlpath[$1]}
+    fi
+    ps ax | grep "${path}mount.s3ql" | grep -qv 'grep'
     local status=$?
     debug "S3QL status: '$status'"
     return $status
@@ -64,7 +68,10 @@ function s3ql_running {
 
 function s3ql_kill {
     debug "Killing old processes"
-    sudo killall -9 mount.s3ql
+    if [[ ! -z "$1" ]]; then
+        path=${s3qlpath[$1]}
+    fi
+    sudo killall -9 ${path}mount.s3ql
 }
 
 function check_valid_device {
@@ -131,12 +138,10 @@ function get_valid_backends {
 
 	        # Unmount if the backend has changed, if s3ql is not running or if the target device is not present anymore
 	        debug "Backend: $backend"
-            s3ql_running
+            s3ql_running $version
             s3ql_status=$?
 	        if [[ $devicestatus -ne 0 || $s3ql_status -ne 0 || $backend != "${current_backends[$version]}" ]] ; then
 	            debug "Unmount $version from ${mountpoints[$version]}"
-                s3ql_running
-                s3ql_status=$?
                 if [[ $s3ql_status -eq 0 ]]; then
                     sudo ${PYPATH[$version]}${s3qlpath[$version]}umount.s3ql ${mountpoints[$version]}
                 else
@@ -144,10 +149,10 @@ function get_valid_backends {
                     sudo umount ${mountpoints[$version]}
                 fi
                 #Kill all potentially remaining s3ql process
-                s3ql_running
+                s3ql_running $version
                 s3ql_status=$?
                 if [[ $s3ql_status -eq 0 ]]; then
-                    s3ql_kill
+                    s3ql_kill $version
                 fi
 	        else
 	            valid_backends[$version]=${current_backends[$version]}
@@ -349,26 +354,22 @@ function fsck {
         fi
     fi
 	debug "Running fsck for version '$version'"
-
 	#local cmd="sudo ${PYPATH[$version]}${s3qlpath[$version]}fsck.s3ql ${CA[$version]} --quiet --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  ${storage_urls[$version]}"
 	#debug "sudo ${PYPATH[$version]}${s3qlpath[$version]}fsck.s3ql ${CA[$version]} --quiet --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  ${storage_urls[$version]} 2>&1"
 	fsck_msg=$(sudo ${PYPATH[$version]}${s3qlpath[$version]}fsck.s3ql $s3ql_quiet ${CA[$version]} --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  ${storage_urls[$version]} 2>&1)
     fsck_result=$?
     #debug "MSG $fsck_msg"
     if [[ $fsck_result -eq 1 && "$version" == "v2_7" ]]; then
-        if [[ $fsck_msg == *"No S3QL file system found"* ]]; then
+        if [[ "$fsck_msg" == *"No S3QL file system found"* ]]; then
             # 2.7 returns 1 for a missing filesystem
             fsck_result=18
-        fi
-        if [[ $fsck_msg == *"NoSuchBucket"* ]]; then
+        elif [[ "$fsck_msg" == *"NoSuchBucket"* ]]; then
             # 2.7 returns 1 for a missing bucket
             fsck_result=16
-        fi
-        if [[ $fsck_msg == *"Wrong file system passphrase"* ]]; then
+        elif [[ "$fsck_msg" == *"Wrong file system passphrase"* ]]; then
             # 2.7 returns 1 for a missing bucket
             fsck_result=17
-        fi
-        if [[ $fsck_msg == *"_pickle.UnpicklingError: unpickling stack underflow"* ]]; then
+        elif [[ "$fsck_msg" == *"_pickle.UnpicklingError: unpickling stack underflow"* ]]; then
             # 2.7 returns if it is given a new FS
             fsck_result=$PossibleFSTooNew
         fi
@@ -431,7 +432,7 @@ function mount_fs {
         return $retval
     fi
     #echo "sudo mount.s3ql $s3ql_quiet ${CA[$CURRENT_VERSION]} --authfile ${auth_file} ${storage_urls[$version]} $mountpath"
-    sudo ${PYPATH[$version]}${s3qlpath[$version]}mount.s3ql --allow-other --cachesize ${s3ql_cachesize} $s3ql_quiet ${CA[$version]} --authfile ${auth_file} ${storage_urls[$version]} $mountpath
+    sudo ${PYPATH[$version]}${s3qlpath[$version]}mount.s3ql --allow-other --cachedir ${s3ql_cachedir} --cachesize ${s3ql_cachesize} $s3ql_quiet ${CA[$version]} --authfile ${auth_file} ${storage_urls[$version]} $mountpath
     return $?
 
 }

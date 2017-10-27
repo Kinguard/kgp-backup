@@ -10,7 +10,8 @@ import argparse
 import subprocess
 import os
 import pykgpconfig
-from pylibopi import AuthLogin
+from pylibopi import AuthLogin,BackupRootPath
+import psutil
 
 AUTH_SERVER        = "auth.openproducts.com"
 AUTH_PATH        = "/"
@@ -120,6 +121,7 @@ if __name__=='__main__':
 
             r = conn.getresponse()
             if (r.status != 200):
+                # TODO: why do we set data that most likely is not accessible???
                 response = {}
                 response['quota'] = int(j_resp['quota'][:-2])*1024
                 response['bytes_used'] = int(int(j_resp['bytes_used'])/1024)
@@ -127,81 +129,33 @@ if __name__=='__main__':
             else:
                 j_resp = json.loads(r.read().decode("utf-8"))
                 response = {}
-                response['quota'] = int(j_resp['quota'][:-2])*1024
-                response['bytes_used'] = int(int(j_resp['bytes_used'])/1024)
+                # quota reported in GB, i.e. 8GB, report pass along as in bytes
+                response['quota'] = int(j_resp['quota'][:-2])*1024*1024*1024
+                response['bytes_used'] = int(int(j_resp['bytes_used']))
                 response['Code'] = 200
 
         except http.client.HTTPException as e:
             dprint(e)
 
-    elif backend == "local://":
-    	
-        if 'backupdisk' not in backup_config:
-            dprint("Missing backupdisk in backup config file")
-            terminate(1)
-    	
-        #Try to mount the disk
-        try:
-            FNULL = open(os.devnull, 'w')
-            retcode = subprocess.call(MOUNT_SCRIPT, stdout=FNULL, stderr=subprocess.STDOUT)
-            if not retcode:
-                df = subprocess.Popen(["df", backup_config['backupdisk']], stdout=subprocess.PIPE)
-                output = df.communicate()[0].decode()
-                device, size, used, available, percent, mountpoint = \
-                output.split("\n")[1].split()
-                response = {}
-                response['quota'] = int(size)
-                response['bytes_used'] = int(used)
-                response['mounted'] = True
-            else:
-                response = {}
-                response['quota'] = 0
-                response['bytes_used'] = 0
-                response['mounted'] = False
-        except Exception as e:
-            dprint("Error mounting disk")
-            dprint(e)
-            terminate(1)
-
-    elif backend == "s3://":
-
-        if 'mountpoint' not in backup_config:
-            dprint("Missing mountpoint in backup config file")
-            terminate(1)
-        mountpoint = backup_config['mountpoint']
-
-        try:
-            if not os.path.ismount(mountpoint):
-                #Try to mount the disk
-                try:
-                    dprint("Trying to mount backend")
-                    FNULL = open(os.devnull, 'w')
-                    retcode = subprocess.call(MOUNT_SCRIPT, stdout=FNULL, stderr=subprocess.STDOUT)
-                    if retcode:
-                        dprint("Error mounting S3 backend")    
-                        terminate(1)
-                except Exception as e:
-                    dprint("Error mounting S3 backend")
-                    dprint(e)
-                    terminate(1)
-
-            df = subprocess.Popen(["df", mountpoint], stdout=subprocess.PIPE)
-            output = df.communicate()[0].decode()
-            device, size, used, available, percent, mountpoint = \
-            output.split("\n")[1].split()
-            response = {}
-            response['quota'] = 0
-            response['bytes_used'] = int(used) * 1024
-            response['mounted'] = True
-        except  Exception as e:
-            dprint("Error getting quota for s3 backend")
-            dprint(e)
-            terminate(1)
-            
-            
     else:
-        dprint("Unknown backend, exit")
-        terminate(1)
+        BackupRootPath = BackupRootPath()
+        dprint("BackupRootPath: %s" % BackupRootPath)
+
+        response = {}
+        response['quota'] = 0
+        response['bytes_used'] = 0
+        response['mounted'] = False
+
+        partitions = psutil.disk_partitions(all=True)
+        for p in partitions:
+            if ( BackupRootPath in p.mountpoint ):
+                disk_usage=psutil.disk_usage(p.mountpoint)
+                # usage seems to be reported in 1k blocks, not as bytes as documentation says...
+                if (backend == "local://"):
+                    response['quota'] = int(psutil.disk_usage(backup_config['device_mountpath']).total)
+                response['bytes_used'] = int(disk_usage.used)
+                response['mounted'] = True
+                break
 
 
     if args.type == "sh":
