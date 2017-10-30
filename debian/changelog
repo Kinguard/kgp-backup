@@ -1,3 +1,10 @@
+opi-backup (2.3.4) vili; urgency=medium
+
+  * Fixed cronjob
+  * opi-backup is default totally quiet. 
+
+ -- PA Nilsson <pa@openproducts.se>  Mon, 30 Oct 2017 11:04:24 +0100
+
 opi-backup (2.3.3) vili; urgency=medium
 
   * Implement restore contacts and calendars
