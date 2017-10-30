@@ -95,7 +95,6 @@ function check_valid_device {
                 status=$PASS
             else
                 status=$FAIL
-                break
             fi
         fi
     else
