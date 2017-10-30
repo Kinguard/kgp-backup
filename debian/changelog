@@ -1,3 +1,10 @@
+opi-backup (2.3.6) vili; urgency=medium
+
+  * Fixed #369, "Faulty Backup not shown"
+  * Fixed #367, "Nextcloud data duplicated" 
+
+ -- PA Nilsson <pa@openproducts.se>  Mon, 30 Oct 2017 15:20:05 +0100
+
 opi-backup (2.3.5) vili; urgency=medium
 
   * Only exit if no valid FS's are available

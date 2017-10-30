@@ -193,7 +193,10 @@ else
 				debug "Valid FS for version '$version'"
 				;;
 			16)
-				debug "Invalid storage URL, specified location does not exist in backend."
+				debug "'$version': Invalid storage URL, specified location does not exist in backend."
+				;;
+			14)
+				debug "'$version': Invalid credentials."
 				;;
 			18)
 				debug "No FS for version '$version' found."
@@ -204,17 +207,17 @@ else
 				fi
 				;;
 			17)
-				exit_fail ${valid_fs[$version]} "Invalid passphrase"
+				debug "'$version': Invalid passphrase"
 				;;
 
 			$PossibleFSTooNew)
-				debug "Unexpected error, possible 2.21 FS with 2.7 backend."
+				debug "'$version': Unexpected error, possible 2.21 FS with 2.7 backend."
 				;;
 			128)
-				debug "'$version' Filesystem repaired"
+				debug "'$version': Filesystem repaired"
 				;;
 			*)
-				debug "Unexpected error from FSCK"
+				debug "'$version': Unexpected error from FSCK"
 				;;
 		esac
 	done
@@ -230,24 +233,26 @@ else
 					# override mountpoint, mount the first valid FS found
 					# prio order is set by "versions" array
 					echo "Using mountpoint override '$mountpoint'"
-					mount_fs $version $mountpoint
-					status=$?
-					if [[ $status -eq 0 ]]; then
-						debug "Mounted $backend"
-						valid_backends[$version]=$backend
-						break
-					fi
-					check_fail $status "Failed to mount FS"
+					m=$mountpoint
 				else
-					mount_fs $version ${mountpoints[$version]}
-					status=$?
-					check_fail $status "Failed to mount FS"
+					m=${mountpoints[$version]}
 				fi
-				
+				mount_fs $version $m
+				status=$?
+				# exit if we failed to mount, this would be odd since we have passed FSCK
+				# so abort...
+				check_fail $status "Failed to mount FS"
+
+				debug "Mounted $backend"
+				valid_backends[$version]=$backend
 			fi
 		done
 	else
 		exit_fail $NoSuitableTarget "No valid targets for backup"
+	fi
+
+	if [[ ${#valid_backends[@]} -eq 0 ]]; then
+		exit_fail $NoSuitableTarget "No Suitable Target"
 	fi
 
 

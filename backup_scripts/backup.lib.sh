@@ -346,6 +346,7 @@ function fsck {
 	local version=$1
 
     # 2.7 does not handle missing paths very well (returns '1'), check that first.
+    # Nothing good to check for in the output either.
     if [[ "$backend" == "local://" ]] && [[ "$version" == "v2_7" ]]; then
         local storagepath=${storage_urls[$version]}
         local path=${storagepath:8}
@@ -363,6 +364,9 @@ function fsck {
         if [[ "$fsck_msg" == *"No S3QL file system found"* ]]; then
             # 2.7 returns 1 for a missing filesystem
             fsck_result=18
+        elif [[ "$fsck_msg" == *"Invalid credentials"* ]]; then
+            # 2.7 returns 1 with invalid credentials
+            fsck_result=14
         elif [[ "$fsck_msg" == *"NoSuchBucket"* ]]; then
             # 2.7 returns 1 for a missing bucket
             fsck_result=16

@@ -1,5 +1,6 @@
 #!/bin/bash
 source /etc/opi/sysinfo.conf
+source backup.conf
 
 cd $(dirname "${BASH_SOURCE[0]}")
 # mounnt_fs.sh also includes backup.lib.sh where a bunch of useful defines and functinos lives.
@@ -22,9 +23,6 @@ while getopts "pd" opt; do
 done
 
 
-source mount_fs.sh
-echo "Mount complete"
-
 new_backup=`date "+%Y-%m-%d_%H:%M:%S"`
 
 if [ ! -d $logdir ]; then
@@ -38,11 +36,15 @@ if [ ! -d "$logdir/complete" ]; then
 	mkdir "$logdir/complete"
 fi
 
+echo "Backup started. This file shall be removed upon completion of the backup job." > "${logdir}/errors/$new_backup"
+echo "If the job is still running, this file is also present." >> "${logdir}/errors/$new_backup"
+
+source mount_fs.sh
+echo "Mount complete"
 
 # Abort entire script if any command fails
 set -e
-echo "Backup started. This file shall be removed upon completion of the backup job." > "${logdir}/errors/$new_backup"
-echo "If the job is still running, this file is also present." >> "${logdir}/errors/$new_backup"
+
 
 if [[ $backend == "s3op://" ]]; then
 	backend_text="OpenProducts"
