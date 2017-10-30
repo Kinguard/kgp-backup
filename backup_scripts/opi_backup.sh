@@ -117,7 +117,7 @@ fi
 msgcount=$(kgp-notifier -a $msgid)
 
 if [ $s3ql_retval -ne 0 ]; then
-	warn "LOG_ERR" "Backup failed"
+	warn "LOG_ERR" "Backup failed, please see admin interface for further details "
 	exit $s3ql_retval
 fi
 
