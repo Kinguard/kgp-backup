@@ -1,3 +1,9 @@
+opi-backup (2.3.3) vili; urgency=medium
+
+  * Implement restore contacts and calendars
+
+ -- Tor Krill <tor@openproducts.se>  Mon, 30 Oct 2017 10:41:18 +0100
+
 opi-backup (2.3.2) vili; urgency=medium
 
   * Updated link-scripts
