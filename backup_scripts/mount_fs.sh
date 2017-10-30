@@ -194,7 +194,6 @@ else
 				;;
 			16)
 				debug "Invalid storage URL, specified location does not exist in backend."
-				exit_fail ${valid_fs[$version]} "Invalid storage URL, specified location does not exist in backend."
 				;;
 			18)
 				debug "No FS for version '$version' found."
@@ -209,14 +208,13 @@ else
 				;;
 
 			$PossibleFSTooNew)
-				exit_fail ${valid_fs[$version]} "Unexpected error, possible 2.21 FS with 2.7 backend."
+				debug "Unexpected error, possible 2.21 FS with 2.7 backend."
 				;;
 			128)
 				debug "'$version' Filesystem repaired"
 				;;
 			*)
 				debug "Unexpected error from FSCK"
-				exit_fail ${valid_fs[$version]} "Unexpected error from FSCK"
 				;;
 		esac
 	done
@@ -236,7 +234,7 @@ else
 					status=$?
 					if [[ $status -eq 0 ]]; then
 						debug "Mounted $backend"
-			valid_backends[$version]=$backend
+						valid_backends[$version]=$backend
 						break
 					fi
 					check_fail $status "Failed to mount FS"

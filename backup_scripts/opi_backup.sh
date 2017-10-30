@@ -106,7 +106,7 @@ fi
 
 if [[ $s3ql_retval -eq 0 ]]; then
 	# link existing backups
-	if [[ ! -z "$verbose" ]]; then
+	if [[ ! -z "$DEBUG" ]]; then
 		"./link_backup.sh" ${args} 2>&1 | tee -a $error_log
 	else
 		"./link_backup.sh" ${args} &>> $error_log
