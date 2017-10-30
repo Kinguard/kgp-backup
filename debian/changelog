@@ -1,3 +1,9 @@
+opi-backup (2.3.7) vili; urgency=medium
+
+  * Fixed #382, "Incorrect link and datascan" 
+
+ -- PA Nilsson <pa@openproducts.se>  Mon, 30 Oct 2017 15:41:40 +0100
+
 opi-backup (2.3.6) vili; urgency=medium
 
   * Fixed #369, "Faulty Backup not shown"
