@@ -3,6 +3,25 @@ source /etc/opi/sysinfo.conf
 
 cd $(dirname "${BASH_SOURCE[0]}")
 # mounnt_fs.sh also includes backup.lib.sh where a bunch of useful defines and functinos lives.
+
+
+# A POSIX variable
+OPTIND=1         # Reset in case getopts has been used previously in the shell.
+# cmd-line overrides config file parameters.
+while getopts "pd" opt; do
+    case "$opt" in
+    d)  DEBUG=1
+        ;;
+    p)  
+        # do not use any colors in output
+        plaintext=1
+        ;;
+    *)	exit 1
+	   ;;
+    esac
+done
+
+
 source mount_fs.sh
 echo "Mount complete"
 

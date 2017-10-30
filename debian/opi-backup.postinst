@@ -21,11 +21,6 @@ set -e
 case "$1" in
     configure)
 
-	if [ ! -e /etc/cron.daily/opi_backup ]
-	then
-		ln -s /usr/share/opi-backup/opi_backup.sh /etc/cron.daily/opi_backup
-	fi
-
 	if [ ! -e /etc/opi-control/completed/mount-backup ]
 	then
 		ln -s /usr/share/opi-backup/link_backup.sh /etc/opi-control/completed/mount-backup

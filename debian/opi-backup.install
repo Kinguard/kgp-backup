@@ -1,2 +1,4 @@
 backup_scripts/*	/usr/share/opi-backup 	
 nextcloud_scripts/*	/usr/share/nextcloud
+backup.cron			/etc/cron.daily
+
