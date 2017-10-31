@@ -327,7 +327,7 @@ function wipe_fs {
     fi
 
     debug "Wipe ${storage_urls[$version]}"
-    #echo "${PYPATH[$version]}${s3qlpath[$version]}s3qladm ${CA[$version]} $s3ql_quiet --log $log_file --authfile ${auth_file} clear ${storage_urls[$version]}  > /dev/null"
+    #echo             "${PYPATH[$version]}${s3qlpath[$version]}s3qladm ${CA[$version]} --authfile ${auth_file} clear ${storage_urls[$version]}"
     echo "yes" | sudo ${PYPATH[$version]}${s3qlpath[$version]}s3qladm ${CA[$version]} --authfile ${auth_file} clear ${storage_urls[$version]} &> /dev/null
 }
 
@@ -355,7 +355,7 @@ function fsck {
     fi
 	debug "Running fsck for version '$version'"
 	#local cmd="sudo ${PYPATH[$version]}${s3qlpath[$version]}fsck.s3ql ${CA[$version]} --quiet --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  ${storage_urls[$version]}"
-	#debug "sudo ${PYPATH[$version]}${s3qlpath[$version]}fsck.s3ql ${CA[$version]} --quiet --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  ${storage_urls[$version]} 2>&1"
+	#debug "    sudo ${PYPATH[$version]}${s3qlpath[$version]}fsck.s3ql $s3ql_quiet ${CA[$version]} --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  ${storage_urls[$version]}"
 	fsck_msg=$(sudo ${PYPATH[$version]}${s3qlpath[$version]}fsck.s3ql $s3ql_quiet ${CA[$version]} --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  ${storage_urls[$version]} 2>&1)
     fsck_result=$?
     #debug "MSG $fsck_msg"
@@ -403,8 +403,8 @@ function create_fs {
             return $retval
         fi
     fi
-
-    sudo ${PYPATH[$version]}${s3qlpath[$version]}mkfs.s3ql $s3ql_quiet ${CA[$version]} --authfile ${auth_file} ${storage_urls[$version]} &> /dev/null
+    #debug "sudo ${PYPATH[$version]}${s3qlpath[$version]}mkfs.s3ql  ${CA[$version]} --cachedir ${s3ql_cachedir} --authfile ${auth_file} ${storage_urls[$version]}"
+    sudo ${PYPATH[$version]}${s3qlpath[$version]}mkfs.s3ql $s3ql_quiet ${CA[$version]} --cachedir ${s3ql_cachedir} --authfile ${auth_file} ${storage_urls[$version]} &> /dev/null
     local retval=$?
     return $retval
 }
@@ -434,7 +434,7 @@ function mount_fs {
         debug "Failed to crete mountpoint"
         return $retval
     fi
-    #echo "sudo mount.s3ql $s3ql_quiet ${CA[$CURRENT_VERSION]} --authfile ${auth_file} ${storage_urls[$version]} $mountpath"
+    #debug "sudo ${PYPATH[$version]}${s3qlpath[$version]}mount.s3ql --allow-other --cachedir ${s3ql_cachedir} --cachesize ${s3ql_cachesize} $s3ql_quiet ${CA[$version]} --authfile ${auth_file} ${storage_urls[$version]} $mountpath"
     sudo ${PYPATH[$version]}${s3qlpath[$version]}mount.s3ql --allow-other --cachedir ${s3ql_cachedir} --cachesize ${s3ql_cachesize} $s3ql_quiet ${CA[$version]} --authfile ${auth_file} ${storage_urls[$version]} $mountpath
     return $?
 

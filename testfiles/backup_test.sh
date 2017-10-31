@@ -21,11 +21,11 @@ source ../backup_scripts/backup.conf
 # read the file with all the fun in it...
 source ../backup_scripts/backup.lib.sh
 
+
 DEBUG=1
 
 
 TESTALL=""
-#TESTALL=1
 
 TESTCOUNT=0
 PASSED=0
@@ -70,24 +70,33 @@ function STARTTEST {
 
 function umount_all {
 	debug "Unmount all s3ql filesystems"
-	mounted_fs=$(sed -n "s%\(^\w*://.*\)\s/.*%\1% p" /proc/mounts)
-	for fs in $mounted_fs
-	do
-		sudo umount $fs
-	done
+	# mounted_fs=$(sed -n "s%\(^\w*://.*\)\s/.*%\1% p" /proc/mounts)
+	# for fs in $mounted_fs
+	# do
+	# 	if [[ $fs == *"2.21"* ]]; then
+	# 		# assume 2.21 FS
+	# 		version="v2_21"
+	# 	else
+	# 		version="v2_7"
+	# 	fi
+	# 	sudo ${PYPATH[$version]} ${s3qlpath[$version]}umount.s3ql $fs
+	# done
+	../backup_scripts/umount_fs.sh
 	# remove all cached data
-	rm -rf ~/.s3ql
+	sudo rm -rf ~/.s3ql/*
 
-	grep -q $device_mountpath /proc/mounts
-	if [[ $? -eq 0 ]]; then
-		debug "Unmount $device_mountpath"
-		sudo umount $device_mountpath
-	fi
 	#check if any FS still exist
 	grep -q "^[a-z0-9]*:\/\/" /proc/mounts
 	status=$?
 	if [[ $status -eq 0 ]]; then
 		echo -e "${red} ERROR: FS still exists.${nc}"
+		exit 1
+	else
+		grep -q $device_mountpath /proc/mounts
+		if [[ $? -eq 0 ]]; then
+			debug "Unmount $device_mountpath"
+			sudo umount $device_mountpath
+		fi
 	fi
 }
 
@@ -222,6 +231,21 @@ function alldone {
 	exit $1
 }
 
+OPTIND=1         # Reset in case getopts has been used previously in the shell.
+# cmd-line overrides config file parameters.
+args=""
+while getopts "a" opt; do
+    case "$opt" in
+    a)
+		TESTALL=1
+	    ;;
+    *)
+		echo "Unknown argument '$opt'"
+		exit 1
+	    ;;
+    esac
+done
+
 debug "Set up environment"
 
 sysinfo_bak=$(init_cfg $sysinfo)
@@ -233,6 +257,7 @@ debug "Using unit id: $unit_id"
 umount_all
 wipe_targets
 
+mkdir -p ~/.s3ql
 
 
 debug "Set target to 'local://'"
@@ -258,31 +283,34 @@ fi
 #  ----------------------------------------------------
 
 # ------- TEST  valid populated backends ------------
-if [[ ! -z $TESTALL ]]; then
-	STARTTEST "Testing get_valid_backends - with backend present"
-	sudo mkdir -p ${mnt2_21} 
-	fsck.s3ql $s3ql_quiet --authfile ${auth_file} local://./fs2.21
-	retval=$?
-	if [[ $retval -ne 0 ]]; then
-		debug "FSCK returned $retval"
-		failandexit
-	fi
-	sudo mount.s3ql $s3ql_quiet --authfile ${auth_file} local://./fs2.21 ${mountpoints[v2_21]}
+# if [[ ! -z $TESTALL ]]; then
+# 	# test does not work with local FS that is not on USB.
 
-	# expect an non-empty 'valid backends'
-	unset valid_backends
-	declare -A valid_backends
+# 	STARTTEST "Testing get_valid_backends - with backend present"
+# 	sudo mkdir -p ${mnt2_21} 
+# 	fsck.s3ql $s3ql_quiet --authfile ${auth_file} local://./fs2.21
+# 	retval=$?
+# 	if [[ $retval -ne 0 ]]; then
+# 		debug "FSCK returned $retval"
+# 		failandexit
+# 	fi
+# 	sudo mount.s3ql $s3ql_quiet --authfile ${auth_file} local://./fs2.21 ${mountpoints[v2_21]}
+
+# 	# expect an non-empty 'valid backends'
+# 	unset valid_backends
+# 	declare -A valid_backends
 	
-	get_valid_backends $backend
+# 	#set -x
+# 	get_valid_backends $backend
 
-	umount_all
-
-	if [[ ${#valid_backends[@]} -eq 1 ]]; then
-		PASSFAIL $PASS
-	else
-		PASSFAIL $FAIL
-	fi
-fi
+# 	umount_all
+# 	if [[ ${#valid_backends[@]} -eq 1 ]]; then
+# 		PASSFAIL $PASS
+# 	else
+# 		PASSFAIL $FAIL
+# 	fi
+# 	set +x
+# fi
 #  ----------------------------------------------------
 
 # ------- TEST  get local path ------------------------
@@ -341,7 +369,7 @@ if [[ ! -z $TESTALL ]]; then
 fi
 #  ----------------------------------------------------
 
-# ------- TEST  mount USB memory ------------
+# ------- TEST  mount non-Valid USB memory ------------
 if [[ ! -z $TESTALL ]]; then
 	STARTTEST "Mount non-Valid USB"
 	path_bak=$backupdevice
@@ -623,7 +651,7 @@ fi
 
 # ------- TEST  FSCK on existing FS with wrong passphrase------------
 
-if [[ 1 || ! -z $TESTALL ]]; then
+if [[ ! -z $TESTALL ]]; then
 	backend="local://"
 	for version in "${versions[@]}";do
 		STARTTEST "FSCK for '$version' with wrong PS"
@@ -654,7 +682,7 @@ fi
 
 
 # ------- TEST  Create FS ------------
-if [[ ! -z $TESTALL ]]; then
+if [[ 1 || ! -z $TESTALL ]]; then
 	# expect a S3ql FS on storage urls
 	for backend in "${backends[@]}"
 	do
@@ -702,11 +730,70 @@ if [[ ! -z $TESTALL ]]; then
 fi
 #  ----------------------------------------------------
 
-# ------- TEST  Mount existing FS ------------
+# ------- TEST  FSCK on existing FS ------------
+
 if [[ ! -z $TESTALL ]]; then
+	backend="local://"
+	for version in "${versions[@]}";do
+		STARTTEST "FSCK for '$version' with correct FS"
+		# expect '0' as return value
+		status=$FAIL
+		# need storage urls
+		unset storage_urls
+		declare -A storage_urls
+		unset CA
+	    declare -A CA
+	    case $backend in
+	    	"s3://")
+		    	path=$s3bucket
+		    	if [[ $version == "v2_7" ]]; then
+		    		debug "Not running FSCK on S3 for 2.7 version"
+   					PASSFAIL $SKIP
+   					continue
+   				fi
+   				;;
+   			"local://")
+		    	path=$(get_localpath)
+	   	        if [[ -z "$path" ]]; then
+	            	# no mem mounted (and should not....), try to get one
+		            path=$(mount_localdevice)
+		            if [[ -z "$path" ]]; then
+		                # there is no suitable device mounted
+		                debug "No Suitable Target"
+		                PASSFAIL $FAIL
+		                continue
+		            fi
+	        	fi
+	        	;;
+	        *)
+				;;
+		esac
+
+		get_urls $path
+
+		if [[ $? -eq $PASS ]]; then
+			fsck $version
+			retval=$?
+			debug "FSCK returned '$retval'"
+			if [[ $retval -eq 0 ]]; then
+				# Missing s3ql filesystem or invalid storage url (can happen on usb when the path is not there.)
+				status=$PASS
+			else
+				debug "FSCK returned '$retval'"
+			fi
+		fi	
+		PASSFAIL $status
+	done
+fi
+#  ----------------------------------------------------
+
+
+# ------- TEST  Mount existing FS ------------
+if [[ 1 || ! -z $TESTALL ]]; then
 	# expect a mounted S3ql FS mountpoint
 	# This test will fail if there is no FS on the backend.
 	for backend in "${backends[@]}";do
+		echo -e "${purple}   ----- Setup Mount Exisiting with backend '$backend' ----- ${nc}"	
 		umount_all
 		for version in "${versions[@]}";do
 			STARTTEST "Mount existing $version FS for $backend on ${mountpoints[$version]}"
