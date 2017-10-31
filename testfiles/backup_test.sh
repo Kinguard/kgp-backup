@@ -90,7 +90,7 @@ function umount_all {
 	status=$?
 	if [[ $status -eq 0 ]]; then
 		echo -e "${red} ERROR: FS still exists.${nc}"
-		exit 1
+		failandexit 1 # do not trugger umount.
 	else
 		grep -q $device_mountpath /proc/mounts
 		if [[ $? -eq 0 ]]; then
@@ -201,15 +201,21 @@ function restore_cfg {
 	set +x
 }
 
+
+
 function failandexit {
+	no_umount=$1
 	echo -e "${yellow}Clean up environment${nc}"
 	restore_cfg "$sysinfo_bak" "$sysinfo"
 	restore_cfg "$authkey_bak" "$authkey"
-	umount_all
+	if [[ -z $1 ]]; then
+		umount_all
+	fi
 	
 	echo -e "${red}ERROR: $2${nc}"	
 	exit $1
 }
+
 function alldone {
 
 	echo -e "${yellow}Clean up environment${nc}"
@@ -283,34 +289,32 @@ fi
 #  ----------------------------------------------------
 
 # ------- TEST  valid populated backends ------------
-# if [[ ! -z $TESTALL ]]; then
-# 	# test does not work with local FS that is not on USB.
+if [[ 1 || ! -z $TESTALL ]]; then
+	# test does not work with local FS that is not on USB.
 
-# 	STARTTEST "Testing get_valid_backends - with backend present"
-# 	sudo mkdir -p ${mnt2_21} 
-# 	fsck.s3ql $s3ql_quiet --authfile ${auth_file} local://./fs2.21
-# 	retval=$?
-# 	if [[ $retval -ne 0 ]]; then
-# 		debug "FSCK returned $retval"
-# 		failandexit
-# 	fi
-# 	sudo mount.s3ql $s3ql_quiet --authfile ${auth_file} local://./fs2.21 ${mountpoints[v2_21]}
+	STARTTEST "Testing get_valid_backends - with backend present"
+	sudo mkdir -p ${mnt2_21} 
+	fsck.s3ql $s3ql_quiet --authfile ${auth_file} local://./fs2.21
+	retval=$?
+	if [[ $retval -ne 0 ]]; then
+		debug "FSCK returned $retval"
+		failandexit
+	fi
+	sudo mount.s3ql $s3ql_quiet --authfile ${auth_file} local://./fs2.21 ${mountpoints[v2_21]}
 
-# 	# expect an non-empty 'valid backends'
-# 	unset valid_backends
-# 	declare -A valid_backends
+	# expect an non-empty 'valid backends'
+	unset valid_backends
+	declare -A valid_backends
 	
-# 	#set -x
-# 	get_valid_backends $backend
-
-# 	umount_all
-# 	if [[ ${#valid_backends[@]} -eq 1 ]]; then
-# 		PASSFAIL $PASS
-# 	else
-# 		PASSFAIL $FAIL
-# 	fi
-# 	set +x
-# fi
+	#set -x
+	get_valid_backends $backend
+	umount_all
+	if [[ ${#valid_backends[@]} -eq 1 ]]; then
+		PASSFAIL $PASS
+	else
+		PASSFAIL $FAIL
+	fi
+fi
 #  ----------------------------------------------------
 
 # ------- TEST  get local path ------------------------
@@ -682,7 +686,7 @@ fi
 
 
 # ------- TEST  Create FS ------------
-if [[ 1 || ! -z $TESTALL ]]; then
+if [[ ! -z $TESTALL ]]; then
 	# expect a S3ql FS on storage urls
 	for backend in "${backends[@]}"
 	do
@@ -789,7 +793,7 @@ fi
 
 
 # ------- TEST  Mount existing FS ------------
-if [[ 1 || ! -z $TESTALL ]]; then
+if [[ ! -z $TESTALL ]]; then
 	# expect a mounted S3ql FS mountpoint
 	# This test will fail if there is no FS on the backend.
 	for backend in "${backends[@]}";do
@@ -807,7 +811,7 @@ if [[ 1 || ! -z $TESTALL ]]; then
 		    	"s3://")
 			    	path=$s3bucket
 			    	if [[ $version == "v2_7" ]]; then
-			    		debug "Create FS on S3 not supported for 2.7 version"
+			    		debug "FS on S3 not supported for 2.7 version"
 	   					PASSFAIL $SKIP
 	   					continue
 	   				fi
@@ -835,8 +839,66 @@ if [[ 1 || ! -z $TESTALL ]]; then
 			PASSFAIL $?
 		done
 	done
-
+	echo -e "${purple}   ----- Teardown Mount Exisiting with backend '$backend' ----- ${nc}"	
+	umount_all
 fi
+#  ----------------------------------------------------
+
+# ------- TEST  Mount existing FS on non-default mnt-path------------
+if [[ ! -z $TESTALL ]]; then
+	# expect a mounted S3ql FS mountpoint
+	# This test will fail if there is no FS on the backend.
+
+	for backend in "${backends[@]}";do
+		echo -e "${purple}   ----- Setup Mount Exisiting on non-default path with backend '$backend' ----- ${nc}"	
+		umount_all
+		for version in "${versions[@]}";do
+			mntpath="tmp_mount_${version}"
+			mkdir -p $mntpath
+			STARTTEST "Mount existing $version FS for $backend on ${mountpoints[$version]}"
+
+			# need storage urls
+			unset storage_urls
+			declare -A storage_urls
+			unset CA
+		    declare -A CA
+		    case $backend in
+		    	"s3://")
+			    	path=$s3bucket
+			    	if [[ $version == "v2_7" ]]; then
+			    		debug "FS on S3 not supported for 2.7 version"
+	   					PASSFAIL $SKIP
+	   					continue
+	   				fi
+	   				;;
+	   			"local://")
+			    	path=$(get_localpath)
+		   	        if [[ -z "$path" ]]; then
+		            	# no mem mounted (and should not....), try to get one
+			            path=$(mount_localdevice)
+			            if [[ -z "$path" ]]; then
+			                # there is no suitable device mounted
+			                debug "No Suitable Target"
+			                PASSFAIL $FAIL
+			                continue
+			            fi
+		        	fi
+		        	;;
+		        *)
+					;;
+			esac
+
+			get_urls $path
+			mount_fs $version $mntpath 
+			
+			PASSFAIL $?
+		done
+	done
+	echo -e "${purple}   ----- Teardown Mount Exisiting with backend '$backend' ----- ${nc}"	
+	umount_all
+fi
+
+
 #  ----------------------------------------------------
 
 

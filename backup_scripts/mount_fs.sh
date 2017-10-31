@@ -54,10 +54,13 @@ OPTIND=1         # Reset in case getopts has been used previously in the shell.
 
 # Initialize our own variables:
 restore=0
+# limit is used together with "-m" to limit the number of "versions" to mount
+# default only mount the newest verson.
+limit=1
 
 
 # cmd-line overrides config file parameters.
-while getopts "b:a:m:rdp" opt; do
+while getopts "b:a:m:l:rdp" opt; do
 	case "$opt" in
 	a)  auth_file=$OPTARG
 		;;
@@ -68,6 +71,8 @@ while getopts "b:a:m:rdp" opt; do
 	r)  restore=1
 		;;
 	d)  DEBUG=1
+		;;
+	l)  limit=$OPTARG
 		;;
 	p)  
 		# do not use any colors in output
@@ -192,14 +197,16 @@ else
 			0)
 				debug "Valid FS for version '$version'"
 				;;
-			16)
-				debug "'$version': Invalid storage URL, specified location does not exist in backend."
-				;;
 			14)
 				debug "'$version': Invalid credentials."
 				;;
-			18)
-				debug "No FS for version '$version' found."
+			16|18)
+				if [[ ${valid_fs[$version]} -eq 16 ]]; then
+					debug "'$version': Invalid storage URL, specified location does not exist in backend."
+				else
+					debug "No FS for version '$version' found."
+				fi
+
 				if [[ $version == $CURRENT_VERSION && $restore -ne 1 ]]; then
 					debug "Create FS with verson '$version'"
 					create_fs 
@@ -233,7 +240,11 @@ else
 					# override mountpoint, mount the first valid FS found
 					# prio order is set by "versions" array
 					echo "Using mountpoint override '$mountpoint'"
-					m=$mountpoint
+					if [[ $limit -eq 1 ]]; then
+						m=$mountpoint
+					else
+						m="${mountpoint}${local_fsprefix[$version]}"
+					fi
 				else
 					m=${mountpoints[$version]}
 				fi
@@ -245,6 +256,10 @@ else
 
 				debug "Mounted $backend"
 				valid_backends[$version]=$backend
+				if [[ ! -z "$mountpoint" && ${#valid_backends[@]} -eq $limit ]]; then
+					debug "Limit to $limit mounted FS('s)"
+					break
+				fi
 			fi
 		done
 	else

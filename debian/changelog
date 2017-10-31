@@ -1,3 +1,9 @@
+opi-backup (2.3.8) vili; urgency=medium
+
+  * Reworked "valid backends" to support arbitrary mountpoints 
+
+ -- PA Nilsson <pa@openproducts.se>  Tue, 31 Oct 2017 17:39:16 +0100
+
 opi-backup (2.3.7) vili; urgency=medium
 
   * Fixed #382, "Incorrect link and datascan" 

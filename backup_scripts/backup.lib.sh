@@ -49,53 +49,72 @@ nc="\033[0m"
 
 
 function debug {
-	# redirect debug log to stderr
-	if [[ $DEBUG -ne 0 ]]; then
-		(>&2 echo "   $1")
-	fi
+    # redirect debug log to stderr
+    if [[ $DEBUG -ne 0 ]]; then
+        (>&2 echo "   $1")
+    fi
 }
 
 function s3ql_running {
+    local status
     debug "Checking if s3ql is running"
     if [[ ! -z "$1" ]]; then
         path=${s3qlpath[$1]}
     fi
+
     ps ax | grep "${path}mount.s3ql" | grep -qv 'grep'
-    local status=$?
+    status=$?
+
     debug "S3QL status: '$status'"
     return $status
 }
 
 function s3ql_kill {
-    debug "Killing old processes"
+    local loopcount=0
+    local status
+
     if [[ ! -z "$1" ]]; then
         path=${s3qlpath[$1]}
     fi
-    sudo killall -9 ${path}mount.s3ql
+
+    while [[ "$loopcount" -le "$s3ql_timeout" ]]
+    do
+        loopcount=$((loopcount+1))
+        ps ax | grep "${path}mount.s3ql" | grep -qv 'grep'
+        status=$?
+        if [[ $status -eq 1 ]]; then
+            break
+        else
+            debug "Waiting for s3ql to terminate..."
+            sleep 1
+        fi
+    done
+
+    if [[ $status -eq 0 ]]; then
+        debug "Killing old processes"
+
+        if [[ ! -z "$1" ]]; then
+            path=${s3qlpath[$1]}
+        fi
+        sudo killall -9 ${path}mount.s3ql
+    else
+        debug "s3ql already terminated"
+    fi
 }
 
-function check_valid_device {
-    local fs
-    local backend=$1
-    local device
-    local version=$2
 
+function check_valid_device {
+    local backend=$1
+    local mntpoint=$2
     debug "Check validity of the backend"
-    debug "Backend: $1"
-    if [[ $backend == "local://" ]]; then
-        #mntpoint=$(sed -n "s%${backend}\([^[:space:]]*\)\/.*%\1% p" /proc/mounts)
+    if [[ $backend == *"local://"* ]]; then
+        # does the "s3ql_passphrase" exist on the supplied path?
         # do not include possible trailing "/" of the mountpoint
-        fs=$(sed -n "s%local://\([^[:space:]]*\)/\? ${mountpoints[$version]}.*%\1% p" /proc/mounts)
-        debug "Local filesystems found: '$fs'"
-        if [[ ! -z $fs ]]; then
-            fs=$(dirname ${fs})
-            device=$(sed -n "s%\(\/dev/sd[^[:space:]]*\).*${fs}.*%\1% p" /proc/mounts)
-            debug "Device: '$device'"
-            if [[ -b $device ]]; then
-                status=$PASS
-            else
-                status=$FAIL
-            fi
+        FSlocation=$(sed -n "s%local://\([^[:space:]]*\)/\? ${mntpoint}.*%\1% p" /proc/mounts)
+        if [[ -e "$FSlocation/s3ql_passphrase" ]]; then
+            status=$PASS
+        else
+            status=$FAIL
         fi
     else
         debug "No device needed for non-local backends"
@@ -105,81 +124,79 @@ function check_valid_device {
     return $status
 }
 
+
+
 function get_valid_backends {
-	# find out if there are any mounted backend
-	# use global "valid_backends object" (or implicity declare it...)
+    # find out if there are any mounted backend
+    # use global "valid_backends object" (or implicity declare it...)
 
-	local backend
-	local this_backend
-	local s3ql_status
+    local backend
+    local s3ql_status
     local devicestatus
-	declare -A current_backends
+    local mounts
+    declare -A current_backends
 
-	backend=$1
+    backend=$1
 
-	for version in "${!mountpoints[@]}"
-	do
-	    debug "Checking mounted backends for '$version'"
-	    this_backend=$(sed -n "s%\(\w*://\).*\s${mountpoints[$version]}.*%\1% p" /proc/mounts)
-	    if [[ ! -z "$this_backend" ]]; then
-            #debug "THIS: $this_backend"
-            current_backends[$version]=$this_backend
-	    fi
-	done
+    # Find all mounted backends
+    mounts=$(grep [a-z0-9]*:\/\/ /proc/mounts | awk '{print $1 ";" $2}')
+    for mount in $mounts
+    do
+        IFS=';' read -r key val <<<"$mount"
+        current_backends[$key]=$val
+    done
 
-	if [ ${#current_backends[@]} -ne 0 ]; then
-	    debug "Current backends:"
-	    for version in "${!current_backends[@]}";
-	    do
-	        debug "$version --- ${current_backends[$version]}"
-            check_valid_device ${current_backends[$version]} $version
+    if [ "${#current_backends[@]}" -ne "0" ]; then
+        for mount in "${!current_backends[@]}";
+        do
+            local loopcount=0
+            debug "BACKEND: $mount on '${current_backends[$mount]}'"
+            check_valid_device $mount ${current_backends[$mount]}
             devicestatus=$?
-
-	        # Unmount if the backend has changed, if s3ql is not running or if the target device is not present anymore
-	        debug "Backend: $backend"
-            s3ql_running $version
+            s3ql_running
             s3ql_status=$?
-	        if [[ $devicestatus -ne 0 || $s3ql_status -ne 0 || $backend != "${current_backends[$version]}" ]] ; then
-	            debug "Unmount $version from ${mountpoints[$version]}"
-                if [[ $s3ql_status -eq 0 ]]; then
-                    sudo ${PYPATH[$version]}${s3qlpath[$version]}umount.s3ql ${mountpoints[$version]}
-                else
-                    debug "S3QL not running, force umount"
-                    sudo umount ${mountpoints[$version]}
-                fi
-                #Kill all potentially remaining s3ql process
-                s3ql_running $version
-                s3ql_status=$?
-                if [[ $s3ql_status -eq 0 ]]; then
-                    s3ql_kill $version
-                fi
-	        else
-	            valid_backends[$version]=${current_backends[$version]}
 
-	        fi
-	    done
-	   	for version in "${!valid_backends[@]}"
-		do
-			debug "   --lib--  backend: '${valid_backends[$version]}'  version: $version Path: '${mountpoints[$version]}'"
-		done
+            debug "Test if the backend is valid"
+            if [[ "$mount" == *"$backend"* && $devicestatus -eq 0 && $s3ql_status -eq 0  ]]; then
+                valid_backends[$mount]=${current_backends[$mount]}
+            else
+                debug "Unmount device '$mount' from '${current_backends[$mount]}'"
+                while [[ "$loopcount" -le "$s3ql_timeout" ]]
+                do
+                    loopcount=$((loopcount+1))
+                    sudo fusermount -u ${current_backends[$mount]}
+                    if [[ $? -eq 0 ]]; then
+                        break
+                    else
+                        debug "Trying to run 'fusermount -u' again in 1 sec..."
+                        sleep 1
+                    fi
+                done
 
-	else
-	    debug "No backends mounted"
+            fi
+        done
+        for mount in "${!valid_backends[@]}"
+        do
+            debug "   --lib--  backend: $mount '${valid_backends[$mount]}'"
+        done
+
+    else
+        debug "No backends mounted"
         #Kill all s3ql process if there is no backend mounted.
         s3ql_running
         s3ql_status=$?
         if [[ $s3ql_status -eq 0 ]]; then
             s3ql_kill
         fi
-	fi
+    fi
 }
 
 function get_localpath {
 
-	local local_device
-	local localpath
-	local fs_mounted
-	local realpath
+    local local_device
+    local localpath
+    local fs_mounted
+    local realpath
 
     debug "Trying to find a suitable device on 'default' location ($device_mountpath)"
     # Need to have the trailing space included here in order not to get false positives
@@ -256,19 +273,19 @@ function mount_localdevice {
                 debug "Failed to mount '$device'"
             fi
          else
-         	debug "Failed to mount '$device'"
+            debug "Failed to mount '$device'"
         fi
     done
 }
 
 function get_urls {
 
-	# build a storage url based on the current "backend" (sourced from backup.conf in prod env.)
-	# for local target arg is the path to the mounted device (/mnt/usb)
-	# either the 'localpath' for "local-target" or 'bucket' for s3 is passed in $1
-	local localpath=$1
-	local bucket=$1
-	local version
+    # build a storage url based on the current "backend" (sourced from backup.conf in prod env.)
+    # for local target arg is the path to the mounted device (/mnt/usb)
+    # either the 'localpath' for "local-target" or 'bucket' for s3 is passed in $1
+    local localpath=$1
+    local bucket=$1
+    local version
 
     for version in "${versions[@]}"
     do
@@ -284,7 +301,7 @@ function get_urls {
             fi
         elif [[ $backend == *s3://* ]]; then
             if [ -z "$bucket" ]; then
-            	debug "Missing Bucket"
+                debug "Missing Bucket"
                 return $MissingBucket
             else        
                 storage_urls[$version]="${backend}${bucket}${s3_fsprefix[$version]}"
@@ -298,22 +315,22 @@ function get_urls {
 }
 
 function removelinks {
-	linkdir=$1
-	local pass=$PASS
-	# remove any old symlinks
-	debug "Removing symlinks for $linkdir"
-	if [[ -d "$linkdir" ]]; then
-		for dir in $linkdir*/ ; do
-    		if [[ -L "${dir}/files/backup" && -d "${dir}/files/backup" ]]; then
-				debug "Removing symlink to backupdir '$dir/files/backup'."
-				sudo rm -rf "${dir}/files/backup"
-				pass=$(( pass || $?))
-			fi
-		done
-	else
-		debug "'linkdir' does not exist"
-	fi
-	return $pass
+    linkdir=$1
+    local pass=$PASS
+    # remove any old symlinks
+    debug "Removing symlinks for $linkdir"
+    if [[ -d "$linkdir" ]]; then
+        for dir in $linkdir*/ ; do
+            if [[ -L "${dir}/files/backup" && -d "${dir}/files/backup" ]]; then
+                debug "Removing symlink to backupdir '$dir/files/backup'."
+                sudo rm -rf "${dir}/files/backup"
+                pass=$(( pass || $?))
+            fi
+        done
+    else
+        debug "'linkdir' does not exist"
+    fi
+    return $pass
 }
 
 function wipe_fs {
@@ -332,17 +349,17 @@ function wipe_fs {
 }
 
 function fsck {
-	# global storage_urls and CA is required
-	# "version" is passed as first arg
-	
+    # global storage_urls and CA is required
+    # "version" is passed as first arg
+    
     local fsck_msg
     local fsck_result
 
-	if [[ -z "$1" ]]; then
-		debug "Missing 'version' in call to FSCK"
-		return 1
-	fi
-	local version=$1
+    if [[ -z "$1" ]]; then
+        debug "Missing 'version' in call to FSCK"
+        return 1
+    fi
+    local version=$1
 
     # 2.7 does not handle missing paths very well (returns '1'), check that first.
     # Nothing good to check for in the output either.
@@ -353,10 +370,10 @@ function fsck {
              return 16
         fi
     fi
-	debug "Running fsck for version '$version'"
-	#local cmd="sudo ${PYPATH[$version]}${s3qlpath[$version]}fsck.s3ql ${CA[$version]} --quiet --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  ${storage_urls[$version]}"
-	#debug "    sudo ${PYPATH[$version]}${s3qlpath[$version]}fsck.s3ql $s3ql_quiet ${CA[$version]} --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  ${storage_urls[$version]}"
-	fsck_msg=$(sudo ${PYPATH[$version]}${s3qlpath[$version]}fsck.s3ql $s3ql_quiet ${CA[$version]} --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  ${storage_urls[$version]} 2>&1)
+    debug "Running fsck for version '$version'"
+    #local cmd="sudo ${PYPATH[$version]}${s3qlpath[$version]}fsck.s3ql ${CA[$version]} --quiet --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  ${storage_urls[$version]}"
+    #debug "    sudo ${PYPATH[$version]}${s3qlpath[$version]}fsck.s3ql $s3ql_quiet ${CA[$version]} --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  ${storage_urls[$version]}"
+    fsck_msg=$(sudo ${PYPATH[$version]}${s3qlpath[$version]}fsck.s3ql $s3ql_quiet ${CA[$version]} --cachedir ${s3ql_cachedir} --log $log_file --authfile ${auth_file}  ${storage_urls[$version]} 2>&1)
     fsck_result=$?
     #debug "MSG $fsck_msg"
     if [[ $fsck_result -eq 1 && "$version" == "v2_7" ]]; then

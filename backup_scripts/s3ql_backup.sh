@@ -1,10 +1,23 @@
 #!/bin/bash
+src=$(realpath "${BASH_SOURCE[0]}")
+DIR=$(dirname $src)
+cd $DIR
+
 source /etc/opi/sysinfo.conf
 source backup.conf
 
-cd $(dirname "${BASH_SOURCE[0]}")
-# mounnt_fs.sh also includes backup.lib.sh where a bunch of useful defines and functinos lives.
-
+function path2ver {
+	local mntpath=$1
+	binpath=$(ps ax | grep $mntpath | grep -v 'grep' | awk '{print $6}')
+	for version in ${!s3qlpath[@]}
+	do
+		if [[ "$binpath" == "${s3qlpath[$version]}mount.s3ql" ]]; then
+			echo "$version"
+			return 0
+		fi
+	done
+	return 1
+}
 
 # A POSIX variable
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
@@ -39,6 +52,7 @@ fi
 echo "Backup started. This file shall be removed upon completion of the backup job." > "${logdir}/errors/$new_backup"
 echo "If the job is still running, this file is also present." >> "${logdir}/errors/$new_backup"
 
+# mounnt_fs.sh also includes backup.lib.sh where a bunch of useful defines and functinos lives.
 source mount_fs.sh
 echo "Mount complete"
 
@@ -152,7 +166,7 @@ rsync -qaHAXx --delete-during --delete-excluded --partial \
     "/etc/postfix/main.cf" "/etc/mailname" \
     "/etc/shadow" \
     "/etc/opi" \
-    "./${new_backup}/${systemdir}"
+    "./${new_backup}/${systemdir}" 
 
 rsync_system=$?
 echo "RSYNC system: $rsync_system"
@@ -198,6 +212,7 @@ rm "${logdir}/errors/$new_backup"
 echo "Remove old logfiles"
 # keep newest file, remove the rest
 cd "${logdir}/errors/"
+pwd
 nbr_files=$(ls -1 | wc -l)
 if [ "$nbr_files" -gt 1 ]; then
 	ls -tr | head -n -1 | xargs rm
@@ -221,12 +236,16 @@ echo "Expire backups"
 # Expire old backups
 
 
-for version in "${!valid_backends[@]}"
-do
-	echo "Expire backups for version '$version'"
-	cd ${mountpoints[$version]}
-	sudo ${PYPATH[$version]}${s3qlpath[$version]}expire_backups --use-s3qlrm --reconstruct-state 1 7 14 31 90 180 360
 
+for mount in "${!valid_backends[@]}"
+do
+	echo "Expire backups for '$mount'"
+	mntpath=${valid_backends[$mount]}
+	cd ${mntpath}
+
+	version=$(path2ver $mntpath)
+	echo "Using version '$version'"
+	sudo ${PYPATH[$version]}${s3qlpath[$version]}expire_backups --use-s3qlrm --reconstruct-state 1 7 14 31 90 180 360
 	echo "Syncing filesystem"
 	sudo ${PYPATH[$version]}${s3qlpath[$version]}s3qlctrl flushcache ${mountpoints[$version]}
 done

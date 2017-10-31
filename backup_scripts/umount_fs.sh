@@ -19,13 +19,16 @@ declare -A valid_backends
 get_valid_backends $backend
 status=0
 if [[ ${#valid_backends[@]} -gt 0 ]]; then
-	for version in "${!valid_backends[@]}"
+	for mount in "${!valid_backends[@]}"
 	do
-		debug "Umount backend: '${valid_backends[$version]}'  version: $version Path: '${mountpoints[$version]}'"
-		sudo ${PYPATH[$version]}${s3qlpath[$version]}umount.s3ql ${mountpoints[$version]}
+		debug "Umount backend: '$mount' from '${valid_backends[$mount]}'"
+		sudo fusermount -u ${valid_backends[$mount]}
 		status=$?
 		debug "Umount status: '$status'"
 	done
+	debug "Kill all remaining s3ql processes"
+	s3ql_kill
+	
     echo "Remove any existing old symlinks"
     removelinks $nextcloud_dir
     retval=$1
