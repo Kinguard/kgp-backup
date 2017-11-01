@@ -102,7 +102,6 @@ function s3ql_kill {
     fi
 }
 
-
 function check_valid_device {
     local backend=$1
     local mntpoint=$2
@@ -124,7 +123,25 @@ function check_valid_device {
     return $status
 }
 
-
+function check_expire_state {
+    # ok for file to be missing
+    local statefile=".expire_backups.dat"
+    local statestatus
+    if [[ -e $statefile ]]; then
+        # temporary allow failure
+        set +e
+        content=$(cat .expire_backups.dat | json_pp -json_opt allow_singlequote &> /dev/null)
+        statestatus=$?
+        set -e
+        if [[ $statestatus -ne 0 ]]; then
+            debug "State file content is not a valid json string, deleting"
+            rm -f $statefile
+        else
+            debug "Valid state file content"
+        fi
+    fi
+    return 0
+}
 
 function get_valid_backends {
     # find out if there are any mounted backend

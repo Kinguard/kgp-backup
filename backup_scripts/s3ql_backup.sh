@@ -49,6 +49,14 @@ if [ ! -d "$logdir/complete" ]; then
 	mkdir "$logdir/complete"
 fi
 
+# exit if the system is locked.
+grep -q $luksdevice /proc/mounts
+if [[ $? -ne 0 ]]; then
+	echo "Unit locked"
+    exit 0
+fi
+
+
 echo "Backup started. This file shall be removed upon completion of the backup job." > "${logdir}/errors/$new_backup"
 echo "If the job is still running, this file is also present." >> "${logdir}/errors/$new_backup"
 
@@ -235,16 +243,16 @@ echo '{"date":"'$new_backup'", "status":"ok", "script_version":"'$version'"}' > 
 echo "Expire backups"
 # Expire old backups
 
-
-
 for mount in "${!valid_backends[@]}"
 do
-	echo "Expire backups for '$mount'"
 	mntpath=${valid_backends[$mount]}
 	cd ${mntpath}
+	echo "Expire backups for '$mount' ('$mntpath')"
 
 	version=$(path2ver $mntpath)
 	echo "Using version '$version'"
+	echo "Check state file status"
+	check_expire_state
 	sudo ${PYPATH[$version]}${s3qlpath[$version]}expire_backups --use-s3qlrm --reconstruct-state 1 7 14 31 90 180 360
 	echo "Syncing filesystem"
 	sudo ${PYPATH[$version]}${s3qlpath[$version]}s3qlctrl flushcache ${mountpoints[$version]}

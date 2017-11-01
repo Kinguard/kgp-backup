@@ -73,6 +73,15 @@ if [[ ! -z $(pgrep 's3ql_backup.sh') ]] ; then
 	exit 0
 fi
 
+
+# exit if the system is locked.
+grep -q $luksdevice /proc/mounts
+if [[ $? -ne 0 ]]; then
+	debug "Unit locked"
+    exit 0
+fi
+
+
 if [ -e $target_file ]; then
 	source $target_file # reads which backend to use
 	if [ $backend == 'none' ] ; then

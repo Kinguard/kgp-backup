@@ -2,7 +2,7 @@
 #set -x
 
 
-read -p "This will likely corrupt any already setup backup configs, Continue? [n/Y] " answer
+read -p "This will delete any already existing backups (and likely corrupt existing auth-keys...). Continue? [n/Y] " answer
 if [[ $answer != "Y" && $answer != "" ]]; then
 	echo "Quitting."
 	exit 1

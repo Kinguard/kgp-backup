@@ -1,3 +1,11 @@
+opi-backup (2.3.9) vili; urgency=medium
+
+  * Fixed #384, "Backup tries to run on locked system"
+  * Fixed #383, "Backup fails on first run"
+  * Fixed #302, "Backup fails in corrupted state file" 
+
+ -- PA Nilsson <pa@openproducts.se>  Wed, 01 Nov 2017 11:23:08 +0100
+
 opi-backup (2.3.8) vili; urgency=medium
 
   * Reworked "valid backends" to support arbitrary mountpoints 

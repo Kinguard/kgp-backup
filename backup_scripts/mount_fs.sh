@@ -85,11 +85,6 @@ done
 
 if [ $restore -ne 1 ]
 then
-	grep -q $luksdevice /proc/mounts
-	if [[ $? -ne 0 ]]; then
-		exit_fail 99 "Unit locked"
-	fi
-
 	if [ -e $target_file ]; then
 		source  $target_file
 	else   
@@ -255,7 +250,7 @@ else
 				check_fail $status "Failed to mount FS"
 
 				debug "Mounted $backend"
-				valid_backends[$version]=$backend
+				valid_backends["$version on $backend"]=$m
 				if [[ ! -z "$mountpoint" && ${#valid_backends[@]} -eq $limit ]]; then
 					debug "Limit to $limit mounted FS('s)"
 					break
