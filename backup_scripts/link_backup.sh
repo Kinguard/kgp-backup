@@ -59,8 +59,8 @@ do
 		done
 	fi
 done
-for user in $users; do
-	debug "Trigger nextcloud scan for '$user'"
+for uname in $users; do
+	debug "Trigger nextcloud scan for '$uname'"
 	cd ${nextcloud_installdir}
 	su -s /bin/sh -c "php ./occ files:scan -v -- ${uname}" www-data
 	if [ $? -ne 0 ]; then

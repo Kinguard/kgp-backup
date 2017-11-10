@@ -1,3 +1,9 @@
+opi-backup (2.3.10) vili; urgency=medium
+
+  * Fixed #380, Nextcloud scans only one users datadir 
+
+ -- PA Nilsson <pa@openproducts.se>  Fri, 10 Nov 2017 08:35:10 +0100
+
 opi-backup (2.3.9) vili; urgency=medium
 
   * Fixed #384, "Backup tries to run on locked system"
