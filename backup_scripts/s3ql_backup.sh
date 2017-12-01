@@ -36,7 +36,8 @@ while getopts "pd" opt; do
 done
 
 
-new_backup=`date "+%Y-%m-%d_%H:%M:%S"`
+new_backup="inprogress"
+this_backup=`date "+%Y-%m-%d_%H:%M:%S"`
 
 if [ ! -d $logdir ]; then
 	mkdir $logdir
@@ -57,8 +58,8 @@ if [[ $? -ne 0 ]]; then
 fi
 
 
-echo "Backup started. This file shall be removed upon completion of the backup job." > "${logdir}/errors/$new_backup"
-echo "If the job is still running, this file is also present." >> "${logdir}/errors/$new_backup"
+echo "Backup started. This file shall be removed upon completion of the backup job." > "${logdir}/errors/$this_backup"
+echo "If the job is still running, this file is also present." >> "${logdir}/errors/$this_backup"
 
 # mounnt_fs.sh also includes backup.lib.sh where a bunch of useful defines and functinos lives.
 source mount_fs.sh
@@ -116,9 +117,11 @@ if backups:
 EOF`
 
 # Duplicate the most recent backup unless this is the first backup
+echo "Removing any interrupted old data..."
+rm -rf $new_backup
 echo "Duplicate backup"
 if [ -n "$last_backup" ]; then
-    echo "Copying $last_backup to $new_backup..."
+    echo "Copying $last_backup to '$new_backup'..."
     sudo ${PYPATH[$CURRENT_VERSION]}${s3qlpath[$CURRENT_VERSION]}s3qlcp "$last_backup" "$new_backup"
 
 else
@@ -164,7 +167,20 @@ else
 	echo "Missing Contacts Export Script"
 fi
 
-echo "Copy system files"
+
+echo "Copy system files (/etc/)"
+if [[ ! -d "./${new_backup}/${systemdir}/etc" ]]; then
+	mkdir ./${new_backup}/${systemdir}/etc
+fi
+rsync -qaHAXx --delete-during --delete-excluded --partial \
+    "/etc/opi" \
+    "./${new_backup}/${systemdir}/etc" 
+
+rsync_etc=$?
+echo "RSYNC system: $rsync_etc"
+
+
+echo "Copy system files (/var/opi/ + misc)"
 rsync -qaHAXx --delete-during --delete-excluded --partial \
     --exclude $nextcloud_dir \
     --exclude $s3ql_cachedir \
@@ -173,19 +189,20 @@ rsync -qaHAXx --delete-during --delete-excluded --partial \
     "/usr/share/nextcloud/config/config.php" \
     "/etc/postfix/main.cf" "/etc/mailname" \
     "/etc/shadow" \
-    "/etc/opi" \
     "./${new_backup}/${systemdir}" 
 
 rsync_system=$?
 echo "RSYNC system: $rsync_system"
 
-if [ $rsync_user -ne 0 ] || [ $rsync_system -ne 0 ]; then
+
+
+if [ $rsync_user -ne 0 ] || [ $rsync_system -ne 0 ] || [ $rsync_etc -ne 0 ]; then
 	if [ $rsync_user -eq 24 ] || [ $rsync_system -eq 24 ]; then
 		# this is the case when files have dissappeard, that is ok since user files can do that, epecially mail
 		rsync_retval=0
 		echo "rsync lost some files on the way"
 	else
-		let "rsync_retval=$rsync_user+$rsync_system"		#return something that maybe can be useful...
+		let "rsync_retval=$rsync_user+$rsync_system+$resync_etc"		#return something that maybe can be useful...
 		echo "RSYNC RetVal: $rsync_retval"
 	fi
 else
@@ -215,7 +232,13 @@ echo "Set permissions on system files"
 find "./${new_backup}/${systemdir}" -type d -print0 | xargs -0 chmod 700 
 find "./${new_backup}/${systemdir}" -type f -print0 | xargs -r0 chmod 600
 
-rm "${logdir}/errors/$new_backup"
+# write "success" status msg
+echo '{"date":"'$new_backup'", "status":"ok", "script_version":"'$version'"}' > ./${new_backup}/status.json
+
+# rename backup
+mv ${new_backup} $this_backup
+
+rm "${logdir}/errors/$this_backup"
 
 echo "Remove old logfiles"
 # keep newest file, remove the rest
@@ -233,13 +256,11 @@ if [ "$nbr_files" -gt 4 ]; then
 	ls -tr | head -n -4 | xargs rm
 fi
 
-echo "Backup finished to '${backend_text}' without errors" > "${logdir}/complete/$new_backup"
+echo "Backup finished to '${backend_text}' without errors" > "${logdir}/complete/$this_backup"
 echo "Last backup to: '$backend_text'" > "${logdir}/complete/last_target"
 echo "Backup finished"
 
 cd ${mountpoints[$CURRENT_VERSION]}
-# write "success" status msg
-echo '{"date":"'$new_backup'", "status":"ok", "script_version":"'$version'"}' > ./${new_backup}/status.json
 echo "Expire backups"
 # Expire old backups
 

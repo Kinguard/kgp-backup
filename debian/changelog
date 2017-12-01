@@ -1,3 +1,10 @@
+opi-backup (2.3.11) vili; urgency=medium
+
+  * Fixed issue with files in /etc/ being incorrectly copied. 
+  * Running backup to tmp name and then renaming.
+
+ -- PA Nilsson <pa@openproducts.se>  Thu, 30 Nov 2017 15:15:43 +0100
+
 opi-backup (2.3.10) vili; urgency=medium
 
   * Fixed #380, Nextcloud scans only one users datadir 
