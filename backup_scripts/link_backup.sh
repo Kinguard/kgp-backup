@@ -42,6 +42,8 @@ do
 				
 				echo "Creating links for user: '$uname'"
 				mkdir -p "${nextcloud_dir}/$user/files/backup/"
+				# make the backup dir excluded from the gallery file scan.
+				touch "${nextcloud_dir}/$user/files/backup/.nomedia"
 				for date in "${dates[@]}"; do
 					#echo "link target: ${mntpath}/${date}/${userdata}/${user}"
 					if [ -d ${mntpath}/${date}/${userdata}/${user} ]; then 
