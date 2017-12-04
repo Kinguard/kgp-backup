@@ -172,8 +172,26 @@ echo "Copy system files (/etc/)"
 if [[ ! -d "./${new_backup}/${systemdir}/etc" ]]; then
 	mkdir ./${new_backup}/${systemdir}/etc
 fi
+
+sysfiles="
+/etc/opi/opi-access.conf 
+/etc/opi/opi-update.conf 
+/etc/opi/signed_certs 
+/etc/opi/sysinfo.conf 
+/etc/opi/web_cert.pem 
+/etc/opi/web_key.pem 
+/etc/opi/org_cert.pem 
+/etc/opi/org_key.pem
+"
+for file in $sysfiles
+do
+	if [[ -e $file ]]; then
+		sys_filelist="$sys_filelist $file"
+	fi
+done
+
 rsync -qaHAXx --delete-during --delete-excluded --partial \
-    "/etc/opi" \
+	$sys_filelist \
     "./${new_backup}/${systemdir}/etc" 
 
 rsync_etc=$?
@@ -202,7 +220,7 @@ if [ $rsync_user -ne 0 ] || [ $rsync_system -ne 0 ] || [ $rsync_etc -ne 0 ]; the
 		rsync_retval=0
 		echo "rsync lost some files on the way"
 	else
-		let "rsync_retval=$rsync_user+$rsync_system+$resync_etc"		#return something that maybe can be useful...
+		let "rsync_retval=$rsync_user+$rsync_system+$rsync_etc"		#return something that maybe can be useful...
 		echo "RSYNC RetVal: $rsync_retval"
 	fi
 else

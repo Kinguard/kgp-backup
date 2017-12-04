@@ -1,3 +1,9 @@
+opi-backup (2.3.12) vili; urgency=medium
+
+  * Do not include system files that are regenerated in backup (keys etc..)
+
+ -- PA Nilsson <pa@openproducts.se>  Mon, 04 Dec 2017 07:45:53 +0100
+
 opi-backup (2.3.11) vili; urgency=medium
 
   * Fixed issue with files in /etc/ being incorrectly copied. 
