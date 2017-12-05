@@ -74,7 +74,7 @@ echo "Restore system configs"
 rsync -a --info=progress2 $RESTOREPATH/system/etc/opi /etc/
 
 # Restore unit-id as this can be different if restored on a new system with a new unit-id
-sed -i 's/\(unit_id=\)\(.*\)$/\1$unit_id' /etc/opi/sysinfo.conf
+sed -i 's/\(unit_id=\)\(.*\)$/\1$unit_id/' /etc/opi/sysinfo.conf
 
 echo "Restore user data"
 rsync -a --info=progress2 $RESTOREPATH/userdata/* /mnt/opi/nextcloud/data/

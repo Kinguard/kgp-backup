@@ -1,3 +1,10 @@
+opi-backup (2.3.13) vili; urgency=medium
+
+  * Fixed typo in sed expression
+  * Corrected path for /etc/opi on target 
+
+ -- PA Nilsson <pa@openproducts.se>  Tue, 05 Dec 2017 22:22:14 +0100
+
 opi-backup (2.3.12) vili; urgency=medium
 
   * Do not include system files that are regenerated in backup (keys etc..)

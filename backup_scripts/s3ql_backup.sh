@@ -128,7 +128,7 @@ else
 	# Check if dirs exist on backup target
 	if [ ! -d $new_backup ]; then
 		echo "No backupdir present, creating $new_backup"
-		mkdir $new_backup
+		mkdir -p $new_backup
 	fi
 
 fi
@@ -169,8 +169,8 @@ fi
 
 
 echo "Copy system files (/etc/)"
-if [[ ! -d "./${new_backup}/${systemdir}/etc" ]]; then
-	mkdir ./${new_backup}/${systemdir}/etc
+if [[ ! -d "./${new_backup}/${systemdir}/etc/opi" ]]; then
+	mkdir -p ./${new_backup}/${systemdir}/etc/opi
 fi
 
 sysfiles="
@@ -192,7 +192,7 @@ done
 
 rsync -qaHAXx --delete-during --delete-excluded --partial \
 	$sys_filelist \
-    "./${new_backup}/${systemdir}/etc" 
+    "./${new_backup}/${systemdir}/etc/opi" 
 
 rsync_etc=$?
 echo "RSYNC system: $rsync_etc"
