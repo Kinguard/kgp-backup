@@ -1,3 +1,9 @@
+opi-backup (2.3.14) vili; urgency=medium
+
+  * Removed duplicate nextcloud data from target. Fixes #367 
+
+ -- PA Nilsson <pa@openproducts.se>  Wed, 06 Dec 2017 07:48:31 +0100
+
 opi-backup (2.3.13) vili; urgency=medium
 
   * Fixed typo in sed expression

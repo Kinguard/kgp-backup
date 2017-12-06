@@ -147,6 +147,7 @@ rsync -qaHAXx --delete-during --delete-excluded --partial \
     --exclude "*/cache/" \
     --exclude "*/gallery/" \
     --exclude "*/files/backup" \
+    --exclude "*/files_versions" \
     "${nextcloud_dir}" "./${new_backup}/${userdata}"
 
 rsync_user=$?
@@ -195,13 +196,13 @@ rsync -qaHAXx --delete-during --delete-excluded --partial \
     "./${new_backup}/${systemdir}/etc/opi" 
 
 rsync_etc=$?
-echo "RSYNC system: $rsync_etc"
+echo "RSYNC /etc/opi: $rsync_etc"
 
 
 echo "Copy system files (/var/opi/ + misc)"
 rsync -qaHAXx --delete-during --delete-excluded --partial \
-    --exclude $nextcloud_dir \
-    --exclude $s3ql_cachedir \
+    --exclude "nextcloud/data" \
+    --exclude "etc/backup/.s3ql_cache" \
     --exclude "mysql" \
     "/var/opi" \
     "/usr/share/nextcloud/config/config.php" \
