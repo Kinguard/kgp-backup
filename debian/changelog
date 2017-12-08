@@ -1,3 +1,9 @@
+opi-backup (2.3.15) vili; urgency=medium
+
+  * Added dep on llfuse-legacy 
+
+ -- PA Nilsson <pa@openproducts.se>  Fri, 08 Dec 2017 07:00:45 +0100
+
 opi-backup (2.3.14) vili; urgency=medium
 
   * Removed duplicate nextcloud data from target. Fixes #367 
