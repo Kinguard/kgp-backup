@@ -469,7 +469,7 @@ function mount_fs {
         return $retval
     fi
     #debug "sudo ${PYPATH[$version]}${s3qlpath[$version]}mount.s3ql --allow-other --cachedir ${s3ql_cachedir} --cachesize ${s3ql_cachesize} $s3ql_quiet ${CA[$version]} --authfile ${auth_file} ${storage_urls[$version]} $mountpath"
-    sudo ${PYPATH[$version]}${s3qlpath[$version]}mount.s3ql --allow-other --cachedir ${s3ql_cachedir} --cachesize ${s3ql_cachesize} $s3ql_quiet ${CA[$version]} --authfile ${auth_file} ${storage_urls[$version]} $mountpath
+    sudo ${PYPATH[$version]}${s3qlpath[$version]}mount.s3ql --log $log_file --allow-other --cachedir ${s3ql_cachedir} --cachesize ${s3ql_cachesize} $s3ql_quiet ${CA[$version]} --authfile ${auth_file} ${storage_urls[$version]} $mountpath
     return $?
 
 }

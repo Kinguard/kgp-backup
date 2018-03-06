@@ -1,3 +1,9 @@
+opi-backup (2.3.16) vili; urgency=medium
+
+  * Added support to set smaller cache size for OPI 
+
+ -- PA Nilsson <pa@openproducts.se>  Tue, 06 Mar 2018 11:20:31 +0100
+
 opi-backup (2.3.15) vili; urgency=medium
 
   * Added dep on llfuse-legacy 
