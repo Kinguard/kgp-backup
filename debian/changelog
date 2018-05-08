@@ -1,3 +1,16 @@
+opi-backup (2.3.18) vili; urgency=medium
+
+  * Added support to exclude dirs from backup
+  * Added experimental support for progress report during backup.
+
+ -- PA Nilsson <pa@openproducts.se>  Tue, 08 May 2018 14:19:50 +0200
+
+opi-backup (2.3.17) vili; urgency=medium
+
+  * Fixed check for systype to set OPI cache size. 
+
+ -- PA Nilsson <pa@openproducts.se>  Fri, 23 Mar 2018 13:46:58 +0100
+
 opi-backup (2.3.16) vili; urgency=medium
 
   * Added support to set smaller cache size for OPI 

@@ -6,6 +6,16 @@ cd $DIR
 source /etc/opi/sysinfo.conf
 source backup.conf
 
+function state_update {
+	if [[ -z "$state" ]]; then
+		state=1
+	else
+		state=$((state + 1))
+	fi
+	echo $1
+	echo '{"state":"'$state'", "desc":"'$1'","max_states":"'$max_states'"}' > $statefile
+}
+
 function path2ver {
 	local mntpath=$1
 	binpath=$(ps ax | grep $mntpath | grep -v 'grep' | awk '{print $6}')
@@ -60,6 +70,7 @@ fi
 
 echo "Backup started. This file shall be removed upon completion of the backup job." > "${logdir}/errors/$this_backup"
 echo "If the job is still running, this file is also present." >> "${logdir}/errors/$this_backup"
+state_update "Backup started"
 
 # mounnt_fs.sh also includes backup.lib.sh where a bunch of useful defines and functinos lives.
 source mount_fs.sh
@@ -119,7 +130,8 @@ EOF`
 # Duplicate the most recent backup unless this is the first backup
 echo "Removing any interrupted old data..."
 rm -rf $new_backup
-echo "Duplicate backup"
+
+state_update "Duplicate backup"
 if [ -n "$last_backup" ]; then
     echo "Copying $last_backup to '$new_backup'..."
     sudo ${PYPATH[$CURRENT_VERSION]}${s3qlpath[$CURRENT_VERSION]}s3qlcp "$last_backup" "$new_backup"
@@ -138,22 +150,39 @@ version=$(dpkg -s opi-backup | sed -n 's/Version:\s*\([0-9\.]*\)/\1/p')
 # write temporary "fail" status msg
 echo '{"date":"'$new_backup'", "status":"fail", "script_version":"'$version'"}' > ./${new_backup}/status.json
 
-
 # ..and update the copy
-echo "Copy user files"
+state_update "Copy user files"
+
+echo "Calculating user excluded files"
+excludelist=$(mktemp -t excludelist.XXXX)
+echo "Exclude file: $excludelist"
+find "${nextcloud_dir}" -name $excludepattern -exec dirname {} >> $excludelist \;
+sed -i s%${nextcloud_dir}%% $excludelist
+echo "Excluded files:"
+cat $excludelist
+
+
 
 set +e
-rsync -qaHAXx --delete-during --delete-excluded --partial \
+
+rsync -aHAXxPh --delete-during --delete-excluded --partial --info=progress2 \
+	--exclude-from=$excludelist \
     --exclude "*/cache/" \
     --exclude "*/gallery/" \
     --exclude "*/files/backup" \
     --exclude "*/files_versions" \
-    "${nextcloud_dir}" "./${new_backup}/${userdata}"
+    --exclude "appdata_oc*" \
+    --exclude "*/files_trashbin" \
+    "${nextcloud_dir}" "./${new_backup}/${userdata}" > ${progressfile}
 
 rsync_user=$?
 echo "RSYNC user: $rsync_user"
+rm $excludelist
+rm $progressfile
 
-echo "Copy calendars and contacts"
+
+state_update "Copy calendars and contacts"
+
 calendarexport="/usr/share/nextcloud/calendars_export.php"
 if [[ -e $calendarexport ]]; then
 	php "$calendarexport" "./${new_backup}/${userdata}"
@@ -169,7 +198,7 @@ else
 fi
 
 
-echo "Copy system files (/etc/)"
+state_update "Copy system files (/etc/)"
 if [[ ! -d "./${new_backup}/${systemdir}/etc/opi" ]]; then
 	mkdir -p ./${new_backup}/${systemdir}/etc/opi
 fi
@@ -229,13 +258,15 @@ else
 fi
 set -e
 
-echo "Dump SQL database"
+state_update "Dump SQL database"
 /usr/bin/mysqldump -uroot -p${mysql_pwd} --all-databases > "./${new_backup}/${systemdir}/opi.sql"
 
 # Make the new backup immutable
 # ${s3ql_path}s3qllock "$new_backup"
 
 # Change ownership and set access rights
+state_update "Setting file permissions"
+
 echo "Change ownership"
 chown -R root:www-data "./${new_backup}"
 chown -R root:root "./${new_backup}/${systemdir}"
@@ -280,7 +311,7 @@ echo "Last backup to: '$backend_text'" > "${logdir}/complete/last_target"
 echo "Backup finished"
 
 cd ${mountpoints[$CURRENT_VERSION]}
-echo "Expire backups"
+state_update "Remove old backups"
 # Expire old backups
 
 for mount in "${!valid_backends[@]}"

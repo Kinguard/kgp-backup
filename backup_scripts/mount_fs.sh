@@ -86,7 +86,7 @@ done
 systype=$(kgp-sysinfo -tp | grep "typeText" | awk '{print $2}')
 debug "Running on '${systype}'"
 
-if [[ "$systype" == "OPI" ]]; then
+if [[ "$systype" == "Opi" ]]; then
     # OPI does not have enough memory
     s3ql_cachesize=$s3ql_cachesize_OPI
 fi

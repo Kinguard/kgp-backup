@@ -8,6 +8,12 @@ source backup.conf
 ISSUER="Backup System"
 
 
+
+function state_update {
+	echo $2
+	echo '{"state":"'$1'", "desc":"'$2'","max_states":"'$max_states'"}' > $statefile
+}
+
 function init_logs {
 	if [ ! -d $logdir ]; then
 		# create dir
@@ -114,6 +120,7 @@ else
 fi
 
 if [[ $s3ql_retval -eq 0 ]]; then
+	state_update $((max_states - 1)) "Updating database with new meta data"
 	# link existing backups
 	if [[ ! -z "$DEBUG" ]]; then
 		"./link_backup.sh" ${args} 2>&1 | tee -a $error_log
@@ -124,6 +131,7 @@ fi
 
 # acknowledge the "start message"
 msgcount=$(kgp-notifier -a $msgid)
+state_update $max_states "Backup complete"
 
 if [ $s3ql_retval -ne 0 ]; then
 	warn "LOG_ERR" "Backup failed, please see admin interface for further details "
