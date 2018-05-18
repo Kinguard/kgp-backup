@@ -8,12 +8,6 @@ source backup.conf
 ISSUER="Backup System"
 
 
-
-function state_update {
-	echo $2
-	echo '{"state":"'$1'", "desc":"'$2'","max_states":"'$max_states'"}' > $statefile
-}
-
 function init_logs {
 	if [ ! -d $logdir ]; then
 		# create dir
@@ -48,6 +42,11 @@ function debug {
 	if [[ ! -z "$DEBUG" ]]; then
 		echo "$1"
 	fi
+}
+
+function state_update {
+	debug $2
+	echo '{"state":"'$1'", "desc":"'$2'","max_states":"'$max_states'"}' > $statefile
 }
 
 OPTIND=1         # Reset in case getopts has been used previously in the shell.
