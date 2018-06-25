@@ -3,7 +3,6 @@ src=$(realpath "${BASH_SOURCE[0]}")
 DIR=$(dirname $src)
 cd $DIR
 
-source /etc/opi/sysinfo.conf
 source backup.conf
 
 function state_update {
@@ -60,12 +59,11 @@ if [ ! -d "$logdir/complete" ]; then
 	mkdir "$logdir/complete"
 fi
 
-# exit if the system is locked.
-grep -q $luksdevice /proc/mounts
-if [[ $? -ne 0 ]]; then
-	echo "Unit locked"
-    exit 0
-fi
+# check for a locked system
+#if locked=$(kgp-sysinfo -l) ; then
+#	echo "Failed to run backup, unit locked."
+#	exit 99
+#fi
 
 
 echo "Backup started. This file shall be removed upon completion of the backup job." > "${logdir}/errors/$this_backup"
@@ -212,6 +210,7 @@ sysfiles="
 /etc/opi/web_key.pem 
 /etc/opi/org_cert.pem 
 /etc/opi/org_key.pem
+/etc/kinguard/sysconfig.json
 "
 for file in $sysfiles
 do

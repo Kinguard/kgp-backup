@@ -64,17 +64,19 @@ rm /mnt/opi/etc/*.pem
 # Copy data from backup
 
 echo -n "Reading unit-id: "
-unit_id=$(grep unit_id /etc/opi/sysinfo.conf | awk -F'=' '{print $2}')
-echo "Current unit-id: $unit_id"
+unit_id=$(kgp-sysinfo -p -c hostinfo -k unitid)
+echo "$unit_id"
 
 echo "Restore system data"
-rsync -a --info=progress2 $RESTOREPATH/system/opi /mnt/
+# owncloud data has incorreclty been included in older backups, no need to restore that here.
+rsync -a --info=progress2 --exclude "owncloud/data" $RESTOREPATH/system/opi /mnt/
 
 echo "Restore system configs"
 rsync -a --info=progress2 $RESTOREPATH/system/etc/opi /etc/
 
 # Restore unit-id as this can be different if restored on a new system with a new unit-id
-sed -i 's/\(unit_id=\)\(.*\)$/\1$unit_id/' /etc/opi/sysinfo.conf
+#sed -i 's/\(unit_id=\)\(.*\)$/\1$unit_id/' /etc/opi/sysinfo.conf
+kgp-sysinfo -w "$unit_id" -c "hostinfo" -k "unitid"
 
 echo "Restore user data"
 rsync -a --info=progress2 $RESTOREPATH/userdata/* /mnt/opi/nextcloud/data/

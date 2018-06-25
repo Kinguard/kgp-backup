@@ -468,6 +468,12 @@ function mount_fs {
         debug "Failed to crete mountpoint"
         return $retval
     fi
+
+    if isOpi=$(kgp-sysinfo -i Opi); then
+        # OPI does not have enough memory
+        s3ql_cachesize=$s3ql_cachesize_OPI
+    fi
+
     #debug "sudo ${PYPATH[$version]}${s3qlpath[$version]}mount.s3ql --allow-other --cachedir ${s3ql_cachedir} --cachesize ${s3ql_cachesize} $s3ql_quiet ${CA[$version]} --authfile ${auth_file} ${storage_urls[$version]} $mountpath"
     sudo ${PYPATH[$version]}${s3qlpath[$version]}mount.s3ql --log $log_file --allow-other --cachedir ${s3ql_cachedir} --cachesize ${s3ql_cachesize} $s3ql_quiet ${CA[$version]} --authfile ${auth_file} ${storage_urls[$version]} $mountpath
     return $?

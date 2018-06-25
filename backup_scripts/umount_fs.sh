@@ -4,8 +4,8 @@ cd $(dirname "${BASH_SOURCE[0]}")
 source backup.conf
 source backup.lib.sh
 
-if [ -e $target_file ]; then
-	source  $target_file
+if backend=$(kgp-sysinfo -p -c "backup" -k "backend") ; then
+	echo "Using backend '$backend'"
 else
 	echo "Using default backend"
 	backend="s3op://" # set default

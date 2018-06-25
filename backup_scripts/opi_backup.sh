@@ -45,7 +45,7 @@ function debug {
 }
 
 function state_update {
-	debug $2
+	debug "$2"
 	echo '{"state":"'$1'", "desc":"'$2'","max_states":"'$max_states'"}' > $statefile
 }
 
@@ -73,34 +73,24 @@ done
 #set up logfiles
 init_logs
 
-if [[ ! -z $(pgrep 's3ql_backup.sh') ]] ; then
-	warn "LOG_INFO" "Backup already running, exiting"
-	exit 0
-fi
+# Test if any backup operations are running.
+# the lock file is set by mount_fs which is sourced by "all" scripts (except this).
+# the lock is released with the script exits (either mount_fs directly of the scripte that sourced it.)
+exec {lock_fd}>${MOUNTLOCK}
+flock -n "$lock_fd" || { warn "LOG_INFO" "Unable to run backup, other backup opertations already running."; exit 0 ;}
+
+# release the lock so that the mount process can get the lock
+flock -u "$lock_fd"
 
 
-# exit if the system is locked.
-grep -q $luksdevice /proc/mounts
-if [[ $? -ne 0 ]]; then
-	debug "Unit locked"
-    exit 0
-fi
 
-
-if [ -e $target_file ]; then
-	source $target_file # reads which backend to use
-	if [ $backend == 'none' ] ; then
-		debug "Backup not enabled"
+if enabled=$(kgp-sysinfo -p -c backup -k enabled) ; then
+	if [[ $enabled -ne 1 ]] ; then
+		debug "Backup disabled"
 		exit 0
-	fi	
-else
-	grep -q $luksdevice /proc/mounts
-	if [[ $? -ne 0 ]]; then
-    	warn "LOG_WARNING" "Failed to run backup, unit locked."
-    	exit 99
-	else
-		warn "LOG_ERR" "Backup aborted, no target file found"
 	fi
+else
+	warn "LOG_DEBUG" "Missing 'backup->enabled' parameter in 'sysconfig'"
 	exit 1
 fi
 
@@ -130,11 +120,13 @@ fi
 
 # acknowledge the "start message"
 msgcount=$(kgp-notifier -a $msgid)
-state_update $max_states "Backup complete"
 
 if [ $s3ql_retval -ne 0 ]; then
+	state_update $max_states "Backup job failed"
 	warn "LOG_ERR" "Backup failed, please see admin interface for further details "
 	exit $s3ql_retval
+else
+	state_update $max_states "Backup job completed"
 fi
 
 

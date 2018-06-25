@@ -9,19 +9,14 @@ import sys
 import argparse
 import subprocess
 import os
-import pykgpconfig
-from pylibopi import AuthLogin,BackupRootPath
+from pylibopi import AuthLogin,BackupRootPath,GetKeyAsString
 import psutil
 
 AUTH_SERVER        = "auth.openproducts.com"
 AUTH_PATH        = "/"
 QUOTA_FILE        = "quota.php"
 CURR_DIR = os.path.dirname(os.path.realpath(__file__))
-SYSINFO="/etc/opi/sysinfo.conf"
-BACKUP_TARGET = "/var/opi/etc/backup/target.conf"
-BACKUP_CONF   = CURR_DIR+"/backup.conf"
 MOUNT_SCRIPT = CURR_DIR+"/mount_fs.sh"
-#TODO: more errorchecking
 
 # Constants used on serverside
 FAIL        = 0
@@ -61,36 +56,22 @@ if __name__=='__main__':
     parser.add_argument("-d", "--debug", help="Enable debug prints",action="store_true")
 
     args = parser.parse_args()
-    try:
-        sysinfo = pykgpconfig.read_config(SYSINFO)
-    except Exception as e:
-        dprint("Failed to read sys config")
-        dprint(e)
-        terminate(1)
+
+
 
     try:
-        backup_config = pykgpconfig.read_config(BACKUP_CONF)
+        unitid = GetKeyAsString("hostinfo","unitid")
+        dprint("UnitID: %s" % unitid)
     except Exception as e:
-        dprint("Failed to read backup config")
+        dprint("Failed to read 'unitid' parameter")
         dprint(e)
         terminate(1)
-
-
-    if 'target_file' not in backup_config:
-        dprint("Missing parameters in backup config")
-        terminate(1)
-
     try:
-        target_config = pykgpconfig.read_config(backup_config['target_file'])
+        backend = GetKeyAsString("backup","backend")
     except Exception as e:
-        dprint("Failed to read target config")
+        dprint("Failed to read 'backend' parameter")
         dprint(e)
         terminate(1)
-	
-    if 'backend' not in target_config:
-        dprint("Missing backend in target file")
-        terminate(1)
-    backend = target_config['backend']
 
     if (backend == "s3op://") or (backend == "none"):
         #report server quota even if service is not active.
@@ -105,7 +86,7 @@ if __name__=='__main__':
             ctx.verify_mode = ssl.CERT_REQUIRED
 
             try:
-                ctx.load_verify_locations( sysinfo["ca_path"] )
+                ctx.load_verify_locations( GetKeyAsString("hostinfo","cafile") )
             except Exception as e:
                 dprint("CA file error")
                 dprint(e)
@@ -113,7 +94,7 @@ if __name__=='__main__':
 
             conn = http.client.HTTPSConnection(AUTH_SERVER, 443, context=ctx)
 
-            qs = urllib.parse.urlencode({'unit_id':sysinfo["unit_id"]}, doseq=True)
+            qs = urllib.parse.urlencode({'unit_id':unitid}, doseq=True)
             path = urllib.parse.quote(AUTH_PATH + QUOTA_FILE) + "?"+qs
             headers = {}
             headers["token"] = token
@@ -138,8 +119,6 @@ if __name__=='__main__':
             dprint(e)
 
     else:
-        BackupRootPath = BackupRootPath()
-        dprint("BackupRootPath: %s" % BackupRootPath)
 
         response = {}
         response['quota'] = 0
@@ -147,15 +126,18 @@ if __name__=='__main__':
         response['mounted'] = False
 
         partitions = psutil.disk_partitions(all=True)
+        devicepath = GetKeyAsString("backup","devicemountpath")
+
         for p in partitions:
-            if ( BackupRootPath in p.mountpoint ):
+            if ( devicepath in p.mountpoint ):
                 disk_usage=psutil.disk_usage(p.mountpoint)
                 # usage seems to be reported in 1k blocks, not as bytes as documentation says...
                 if (backend == "local://"):
-                    response['quota'] = int(psutil.disk_usage(backup_config['device_mountpath']).total)
+                    response['quota'] = int(psutil.disk_usage(devicepath).total)
                 response['bytes_used'] = int(disk_usage.used)
+            
+            if ( BackupRootPath() in p.mountpoint ):
                 response['mounted'] = True
-                break
 
 
     if args.type == "sh":

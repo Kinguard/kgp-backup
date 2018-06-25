@@ -5,7 +5,7 @@ DEBUG=0
 src=$(realpath "${BASH_SOURCE[0]}")
 DIR=$(dirname $src)
 cd $DIR
-source /etc/opi/sysinfo.conf
+
 source backup.conf
 source backup.lib.sh
 
@@ -16,7 +16,8 @@ function exit_fail {
 	#  71 : No suitable target
 	#  75 : Missing filesystem during restore
 	#  90 : Missing 'bucket' for s3 backend
-	#  99 : Device locked (luksdevice not present in /proc/mounts)
+	#  98 : This script is already running, and we can only have one instance running.
+	#  99 : Device locked
 	if [[ ! -z "$plaintext" ]]; then
 		red=""
 		green=""
@@ -28,6 +29,7 @@ function exit_fail {
 	echo -e "${red}Error detected, exit code '$1'${nc}"
 	if [ ! -z "$2" ]; then
 		echo -e "${purple}Message: $2${nc}"
+		logger "${purple}Message: $2${nc}"
 	fi
 	echo "s3ql exit codes documented here: http://www.rath.org/s3ql-docs/man/"
 	echo "Additional Codes defined by this script:"
@@ -37,12 +39,15 @@ function exit_fail {
 	echo "  75 : Missing filesystem during restore "
 	echo "  80 : Possible FS too new"
 	echo "  90 : Missing 'bucket' for s3 backend "
+	echo "  98 : Mount process already in progress "
 	echo "  99 : Unit locked"
 	exit $1
 
 }
 
 function check_fail {
+	# checks the argument agains the "PASS" variable and exit's if it does not pass.
+	# Indented to be used as "check_fail $?"
 	retval=$1
 	if [[ $retval -ne $PASS ]]; then
 		exit_fail $retval $2
@@ -60,7 +65,7 @@ limit=1
 
 
 # cmd-line overrides config file parameters.
-while getopts "b:a:m:l:rdp" opt; do
+while getopts "b:a:m:l:rdpf" opt; do
 	case "$opt" in
 	a)  auth_file=$OPTARG
 		;;
@@ -78,28 +83,54 @@ while getopts "b:a:m:l:rdp" opt; do
 		# do not use any colors in output
 		plaintext=1
 		;;
+	f)
+		# use to force mount on a locked system, useful for debug.
+		force=1
+		;;
 	?)	exit 1
 		;;
 	esac
 done
 
-systype=$(kgp-sysinfo -tp | grep "typeText" | awk '{print $2}')
-debug "Running on '${systype}'"
+exec {lock_fd}>"${MOUNTLOCK}"
+flock -n "$lock_fd" || { echo "Mount process already running"; exit_fail $ScriptRunning; }
 
-if [[ "$systype" == "Opi" ]]; then
-    # OPI does not have enough memory
-    s3ql_cachesize=$s3ql_cachesize_OPI
+if unit_id=$(kgp-sysinfo -c hostinfo -k unitid -p); then
+	debug "Using id: '$unit_id'"
+else
+	exit_fail 1 "Missing 'hostinfo->unitid' parameter in 'sysconfig'"
 fi
+
+
+if ca_path=$(kgp-sysinfo -c hostinfo -k cafile -p); then
+	debug "Using CA-file '$ca_path'"
+else
+	exit_fail 1 "Missing 'hostinfo->cafile' parameter in 'sysconfig'"
+fi
+
+if device_mountpath=$(kgp-sysinfo -c backup -k devicemountpath -p); then
+	debug "Using local mount path '$device_mountpath'"
+else
+	exit_fail 1 "Missing 'backup->devicemountpath' parameter in 'sysconfig'"
+fi
+
 
 
 if [ $restore -ne 1 ]
 then
-	if [ -e $target_file ]; then
-		source  $target_file
-	else   
-		echo "No target file"
-		exit_fail $NoSuitableTarget
+	if backend=$(kgp-sysinfo -p -c backup -k backend) ; then
+		if [[ $backend == 'none' ]] ; then
+			debug "Backup disabled"
+			exit 0
+		fi
+		# check for a locked system
+		if [[ $force -ne 1 ]] && locked=$(kgp-sysinfo -l) ; then
+	    	exit_fail $SystemLocked "Failed to run backup, unit locked."
+	    fi
+	else
+		exit_fail $NoSuitableTarget "Missing 'backup->backend' parameter in 'sysconfig'"
 	fi
+
 else
 	# We are doing restore, no cryptvolume available yet
 	# override some defaults
@@ -111,10 +142,6 @@ shift $((OPTIND-1))
 
 [ "$1" = "--" ] && shift
 
-if [[ "$backend" == "none" ]]; then
-	debug "Nothing to do for backend '$backend'"
-	exit 0
-fi
 
 backend_ok=$FAIL
 for b in "${backends[@]}"; do

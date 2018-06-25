@@ -15,7 +15,8 @@ Depends: ${misc:Depends},
  anacron,
  php-secop,
  opi-control,
- python3-psutil
+ python3-psutil,
+ kinguard-utils (>= 1.13)
 Conflicts: 
 Description: OPI backup scripts
  Sets up OPI backup scripts and enables them to run from anacron
