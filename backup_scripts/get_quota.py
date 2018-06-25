@@ -75,7 +75,12 @@ if __name__=='__main__':
 
     if (backend == "s3op://") or (backend == "none"):
         #report server quota even if service is not active.
-        token = AuthLogin()
+        try:
+            token = AuthLogin()
+        except Exception as e:
+            dprint("Authentication failed")
+            dprint(e)
+            terminate(1)
         try:
             import ssl
             import http.client
