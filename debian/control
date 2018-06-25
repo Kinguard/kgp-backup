@@ -16,7 +16,8 @@ Depends: ${misc:Depends},
  php-secop,
  opi-control,
  python3-psutil,
- kinguard-utils (>= 1.13)
+ kinguard-utils (>= 1.13),
+ nextcloud (>=12.0.6-1)
 Conflicts: 
 Description: OPI backup scripts
  Sets up OPI backup scripts and enables them to run from anacron

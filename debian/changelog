@@ -1,3 +1,9 @@
+opi-backup (2.3.21) vili; urgency=medium
+
+  * Reading config parameters from sysconfig.json 
+
+ -- PA Nilsson <pa@openproducts.se>  Wed, 20 Jun 2018 21:44:13 +0200
+
 opi-backup (2.3.20) vili; urgency=medium
 
   * Changed incorrect script output to debug output. 

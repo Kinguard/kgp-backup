@@ -4,7 +4,12 @@ src=$(realpath "${BASH_SOURCE[0]}")
 DIR=$(dirname $src)
 cd $DIR
 
+logger "Linking backups"
+# mount_fs sources the backup conf file.
+# mount_fs will terminate script with exit code 98
+# if the lockfile is locked.
 source mount_fs.sh
+
 
 # Find the existing backup dates
 for mount in "${!valid_backends[@]}"
@@ -31,7 +36,7 @@ do
 		users=""
 		for user in */; do
 			if [ -d "${user}/files/backup" ]; then
-				find -L "${user}/files/backup" -type l -delete
+				find -L "${user}/files/backup" -maxdepth 1 -type l  -delete
 				#echo "Removing links to expired backups for '$user'"
 			fi
 			if [ -d "${nextcloud_dir}/$user/files" ]; then
@@ -64,7 +69,7 @@ done
 for uname in $users; do
 	debug "Trigger nextcloud scan for '$uname'"
 	cd ${nextcloud_installdir}
-	su -s /bin/sh -c "php ./occ files:scan -v -- ${uname}" www-data
+	su -s /bin/sh -c "php ./occ files:scan --shallow -v --path ${uname}/files/backup" www-data
 	if [ $? -ne 0 ]; then
 		echo "File scan for user '$uname' failed"
 	fi
