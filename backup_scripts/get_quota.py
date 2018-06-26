@@ -17,7 +17,7 @@ AUTH_PATH        = "/"
 QUOTA_FILE        = "quota.php"
 CURR_DIR = os.path.dirname(os.path.realpath(__file__))
 MOUNT_SCRIPT = CURR_DIR+"/mount_fs.sh"
-
+CACHED_QUOTA = "/var/opi/etc/backup/quota.cache"
 # Constants used on serverside
 FAIL        = 0
 SUCCESS        = 1
@@ -34,7 +34,7 @@ def terminate(status):
     response['quota'] = 0
     response['bytes_used'] = 0
     response['mounted'] = False
-    #response['status'] = "Fail"
+    response['status'] = not status
     
     if args.type == "sh":
         #dprint("Output shell format")
@@ -45,7 +45,63 @@ def terminate(status):
         #dprint(response)
         print(json.dumps(response))
     sys.exit(status)
-		
+	
+def readcache(backend):
+    try:
+        conf = open(CACHED_QUOTA,"r")
+        config = json.loads(conf.read())
+        conf.close()
+    except Exception as e:
+        dprint("Failed to read config file")
+        terminate(1)
+    return config[backend]
+
+def writecache(stats):
+    try:
+        dprint("Open config file")
+        conf = open(CACHED_QUOTA,"r")
+    except IOError:
+        config = {}
+    except Exception as e:
+        dprint("Failed to open config file")
+        dprint(e)
+        terminate(1)
+
+    try:
+        dprint("Reading config")
+        filecontent = conf.read()
+        conf.close()
+    except Exception as e:
+        dprint("Failed to read config file")
+        dprint(e)
+        terminate(1)
+
+    try:
+        dprint("Parsing file content")
+        config = json.loads(filecontent)
+    except:
+        dprint("Could not parse config file content, writing new content")
+        config = {}
+
+    config[stats['backend']] = stats
+    try: 
+        dprint("Open config file")
+        conf = open(CACHED_QUOTA,"w")
+    except Exception as e:
+        dprint("Failed to open config file for writing")
+        dprint(e)
+        terminate(1)
+
+    dprint("Writing config file")
+    try:
+        conf.write(json.dumps(config))
+        conf.close()
+    except Exception as e:
+        dprint("Failed to write config file")
+        dprint(e)
+
+
+
 
 ### -------------- MAIN ---------------
 if __name__=='__main__':
@@ -57,6 +113,11 @@ if __name__=='__main__':
 
     args = parser.parse_args()
 
+    response = {}
+    response['quota'] = 0
+    response['bytes_used'] = 0
+    response['mounted'] = False
+    response['valid'] = False
 
 
     try:
@@ -68,6 +129,7 @@ if __name__=='__main__':
         terminate(1)
     try:
         backend = GetKeyAsString("backup","backend")
+        response['backend'] = backend
     except Exception as e:
         dprint("Failed to read 'backend' parameter")
         dprint(e)
@@ -108,13 +170,11 @@ if __name__=='__main__':
             r = conn.getresponse()
             if (r.status != 200):
                 # TODO: why do we set data that most likely is not accessible???
-                response = {}
                 response['quota'] = int(j_resp['quota'][:-2])*1024
                 response['bytes_used'] = int(int(j_resp['bytes_used'])/1024)
                 response['Code'] = conn.status
             else:
                 j_resp = json.loads(r.read().decode("utf-8"))
-                response = {}
                 # quota reported in GB, i.e. 8GB, report pass along as in bytes
                 response['quota'] = int(j_resp['quota'][:-2])*1024*1024*1024
                 response['bytes_used'] = int(int(j_resp['bytes_used']))
@@ -123,26 +183,45 @@ if __name__=='__main__':
         except http.client.HTTPException as e:
             dprint(e)
 
-    else:
+    elif (backend == "local://"):
 
-        response = {}
-        response['quota'] = 0
-        response['bytes_used'] = 0
-        response['mounted'] = False
-
-        partitions = psutil.disk_partitions(all=True)
+        partitions = psutil.disk_partitions(all=False) # only get physical devices
         devicepath = GetKeyAsString("backup","devicemountpath")
 
         for p in partitions:
             if ( devicepath in p.mountpoint ):
                 disk_usage=psutil.disk_usage(p.mountpoint)
+                dprint(disk_usage)
                 # usage seems to be reported in 1k blocks, not as bytes as documentation says...
-                if (backend == "local://"):
-                    response['quota'] = int(psutil.disk_usage(devicepath).total)
+                response['quota'] = int(psutil.disk_usage(devicepath).total)
                 response['bytes_used'] = int(disk_usage.used)
-            
+                response['valid'] = True
             if ( BackupRootPath() in p.mountpoint ):
                 response['mounted'] = True
+        if (not response['valid']):
+            dprint("Disk not found / mounted")
+    else:
+        partitions = psutil.disk_partitions(all=True)
+        for p in partitions:
+            if ( BackupRootPath() in p.mountpoint ):
+                dprint("Found mounted backup")
+                try:
+                    output = subprocess.check_output(["/usr/lib/s3ql/s3qlstat","--raw",p.mountpoint]).decode("utf-8")
+                    stats=dict(item.strip().split(":") for item in output.splitlines())
+                    stats['backend'] = backend
+                    response['bytes_used'] = int(stats['Total data size'].split()[0]) + int(stats['Database size'].split()[0])
+                    response['valid'] = True
+                    response['mounted'] = True
+                    writecache(stats)
+                except Exception as e:
+                    dprint("s3qlstat failed.")
+                break
+        if (not response['valid']):
+            dprint("Backend not mounted, trying cached data")
+            stats = readcache(backend)
+            response['bytes_used'] = int(stats['Total data size'].split()[0]) + int(stats['Database size'].split()[0])
+            response['valid'] = False
+
 
 
     if args.type == "sh":

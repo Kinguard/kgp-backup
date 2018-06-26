@@ -196,7 +196,7 @@ else
 fi
 
 
-state_update "Copy system files (/etc/)"
+state_update "Copy mail and system files (/etc/)"
 if [[ ! -d "./${new_backup}/${systemdir}/etc/opi" ]]; then
 	mkdir -p ./${new_backup}/${systemdir}/etc/opi
 fi

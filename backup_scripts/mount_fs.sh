@@ -114,6 +114,7 @@ else
 	exit_fail 1 "Missing 'backup->devicemountpath' parameter in 'sysconfig'"
 fi
 
+bucket=$(kgp-sysinfo -c backup -k bucket -p)
 
 
 if [ $restore -ne 1 ]
