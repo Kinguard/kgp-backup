@@ -109,8 +109,8 @@ else
 fi
 
 debug "Update quota cache"
-stats=$("./get_quota.py -t sh")
-debug stats
+stats=$(./get_quota.py -t sh)
+debug "$stats"
 
 if [[ $s3ql_retval -eq 0 ]]; then
 	state_update $((max_states - 1)) "Updating database with new meta data"
