@@ -2,7 +2,13 @@ opi-backup (2.3.22) vili; urgency=medium
 
   * Reading config parameters from sysconfig.json 
 
- -- PA Nilsson <pa@openproducts.se>  Wed, 20 Jun 2018 21:44:13 +0200
+ -- PA Nilsson <pa@openproducts.se>  Fri, 29 Jun 2018 13:44:13 +0200
+
+opi-backup (2.3.21) vili; urgency=medium
+
+  * Exclude /ar/opi/tmp from backup. 
+
+ -- PA Nilsson <pa@openproducts.se>  Thu, 28 Jun 2018 10:08:34 +0200
 
 opi-backup (2.3.20) vili; urgency=medium
 
