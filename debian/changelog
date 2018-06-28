@@ -1,4 +1,4 @@
-opi-backup (2.3.21) vili; urgency=medium
+opi-backup (2.3.22) vili; urgency=medium
 
   * Reading config parameters from sysconfig.json 
 
