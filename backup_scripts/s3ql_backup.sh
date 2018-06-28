@@ -233,6 +233,7 @@ rsync -qaHAXx --delete-during --delete-excluded --partial \
     --exclude "nextcloud/data" \
     --exclude "etc/backup/.s3ql_cache" \
     --exclude "mysql" \
+    --exclude "tmp" \
     "/var/opi" \
     "/usr/share/nextcloud/config/config.php" \
     "/etc/postfix/main.cf" "/etc/mailname" \
