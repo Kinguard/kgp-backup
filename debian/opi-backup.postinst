@@ -33,9 +33,41 @@ case "$1" in
 		chmod 0600 /var/opi/etc/backup/auth.conf
 	fi
 
-	if [ ! -e /var/opi/etc/backup/target.conf ]
+	if [ -e /var/opi/etc/backup/target.conf ]
 	then
-		echo 'backend="none"' > /var/opi/etc/backup/target.conf
+		# migrate to sysconfig
+		# mountpath has previously been static in "backup.conf", move it to sysconfig
+		kgp-sysinfo -c backup -k devicemountpath -w "/mnt/usb"
+
+		oldconfig="/var/opi/etc/backup/target.conf"
+        backend=$(sed -n 's/backend=\(.*\)$/\1/ p' <$oldconfig)
+        if [ ! -z $backend ]
+        then
+        	if [ $backend = "none" ]  # "none" was previously used to disable backup.
+        	then
+        		kgp-sysinfo -b -c backup -k enabled -w "false"	
+        	else
+        		kgp-sysinfo -b -c backup -k enabled -w "true"	
+        	fi
+            kgp-sysinfo -c backup -k backend -w "$backend"
+        else
+        	kgp-sysinfo -b -c backup -k enabled -w "false"	
+        fi
+
+        bucket=$(sed -n 's/bucket=\(.*\)$/\1/ p' <$oldconfig)
+        if [ ! -z $bucket ]
+        then
+            kgp-sysinfo -c backup -k bucket -w "$bucket"
+        fi
+
+        type=$(sed -n 's/type=\(.*\)$/\1/ p' <$oldconfig)
+        if [ ! -z $type ]
+        then
+            kgp-sysinfo -c backup -k type -w "$type"
+        fi
+
+        rm $oldconfig
+
 	fi
 
 
@@ -55,7 +87,6 @@ case "$1" in
 	chmod 0600 /var/opi/etc/backup/auth.conf
 
 	chown -R root:root /usr/share/opi-backup/
-	chown root:root /var/opi/etc/backup/target.conf
 
     ;;
 
