@@ -95,7 +95,7 @@ done
 exec {lock_fd}>"${MOUNTLOCK}"
 flock -n "$lock_fd" || { echo "Mount process already running"; exit_fail $ScriptRunning; }
 
-if ! enabled=$(kgp-sysinfo -c backup -k enabled) ; then
+if ! enabled=$(kgp-sysinfo -c backup -k enabled -p) || [ $enabled -eq 0 ]; then
 	debug "Backup disabled"
 	exit 0
 fi

@@ -1,3 +1,15 @@
+opi-backup (2.3.24) vili; urgency=medium
+
+  * Respect enabled parameter. 
+
+ -- PA Nilsson <pa@openproducts.se>  Tue, 10 Jul 2018 10:26:21 +0200
+
+opi-backup (2.3.23) vili; urgency=medium
+
+  * Updated regex for parameter migration. 
+
+ -- PA Nilsson <pa@openproducts.se>  Thu, 05 Jul 2018 14:18:37 +0200
+
 opi-backup (2.3.22) vili; urgency=medium
 
   * Read and migrate config parameters from target.conf to sysconfig 

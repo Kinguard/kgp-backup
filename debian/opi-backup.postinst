@@ -40,7 +40,7 @@ case "$1" in
 		kgp-sysinfo -c backup -k devicemountpath -w "/mnt/usb"
 
 		oldconfig="/var/opi/etc/backup/target.conf"
-        backend=$(sed -n 's/backend=\(.*\)$/\1/ p' <$oldconfig)
+        backend=$(sed -n 's/backend=\"\?\([a-z0-9:\/]*\)\"\?$/\1/ p' <$oldconfig)
         if [ ! -z $backend ]
         then
         	if [ $backend = "none" ]  # "none" was previously used to disable backup.
@@ -54,7 +54,7 @@ case "$1" in
         	kgp-sysinfo -b -c backup -k enabled -w "false"	
         fi
 
-        bucket=$(sed -n 's/bucket=\(.*\)$/\1/ p' <$oldconfig)
+        bucket=$(sed -n 's/bucket=\"?\([a-z0-9\.\-]*\)\"?$/\1/ p' <$oldconfig)
         if [ ! -z $bucket ]
         then
             kgp-sysinfo -c backup -k bucket -w "$bucket"
@@ -63,6 +63,7 @@ case "$1" in
         type=$(sed -n 's/type=\(.*\)$/\1/ p' <$oldconfig)
         if [ ! -z $type ]
         then
+            # this should not exist, it has never been used.
             kgp-sysinfo -c backup -k type -w "$type"
         fi
 
