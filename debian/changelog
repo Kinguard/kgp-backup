@@ -1,3 +1,9 @@
+opi-backup (2.3.25) vili; urgency=medium
+
+  * Move devicemount path variable setup not to depend on existance of target.conf 
+
+ -- PA Nilsson <pa@openproducts.se>  Fri, 24 Aug 2018 11:20:15 +0200
+
 opi-backup (2.3.24) vili; urgency=medium
 
   * Respect enabled parameter. 
