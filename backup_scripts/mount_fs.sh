@@ -100,19 +100,6 @@ if ! enabled=$(kgp-sysinfo -c backup -k enabled -p) || [ $enabled -eq 0 ]; then
 	exit 0
 fi
 
-if unit_id=$(kgp-sysinfo -c hostinfo -k unitid -p); then
-	debug "Using id: '$unit_id'"
-else
-	exit_fail 1 "Missing 'hostinfo->unitid' parameter in 'sysconfig'"
-fi
-
-
-if ca_path=$(kgp-sysinfo -c hostinfo -k cafile -p); then
-	debug "Using CA-file '$ca_path'"
-else
-	exit_fail 1 "Missing 'hostinfo->cafile' parameter in 'sysconfig'"
-fi
-
 if device_mountpath=$(kgp-sysinfo -c backup -k devicemountpath -p); then
 	debug "Using local mount path '$device_mountpath'"
 else
@@ -180,6 +167,21 @@ else
 	echo "No currently valid backends."
 
 	case $backend in
+		"s3op://")
+			# require account id (unit-id) and CA to validate server.
+			if unit_id=$(kgp-sysinfo -c hostinfo -k unitid -p); then
+				debug "Using id: '$unit_id'"
+			else
+				exit_fail 1 "Missing 'hostinfo->unitid' parameter in 'sysconfig'"
+			fi
+
+
+			if ca_path=$(kgp-sysinfo -c hostinfo -k cafile -p); then
+				debug "Using CA-file '$ca_path'"
+			else
+				exit_fail 1 "Missing 'hostinfo->cafile' parameter in 'sysconfig'"
+			fi
+			;;
 		"local://")
 			# check if we have a usb-mem mounted somewhere
 			path=$(get_localpath)

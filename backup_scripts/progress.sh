@@ -7,23 +7,28 @@ source backup.conf
 
 status=0
 if [[ -e $progressfile ]];then
-	output=$(tail -n 2 /tmp/opi-backup.progress)
-	readarray -t result <<<"$output"
-	#IFS=$'\n' progress=($output)
+
+	readarray -t result <<< "$(tail -n 2 $progressfile)"
 
 	filename=${result[0]}
-	progress_combined=${result[1]}
+	IFS=$'\r' read -ra lines <<< "${result[1]}"
+	line=${lines[-1]}
 
-	#echo "Progress: ${progress[1]##*              }"
-	progress=($(echo "$progress_combined" | sed -n -e 's/\s*\([0-9a-zA-Z\.]\+\)\s\+\([0-9]\+\%\)\s*\([a-zA-Z0-9\/\.]\+\)\s*\([a-zA-Z0-9:]\+\) (xfr.*$/\1 \2 \3 \4 / p '))
-	if [[ ! -z "${progress[3]}" ]]; then
-		#managed to parse the output, total time is not empty
-		status=1
-	fi
+	# Sets data
+	# $1 => transfered
+	# $2 => progress in %
+	# $3 => rate
+	# $4 => eta
+	set $line
+	transfered=$1
+	progress=$2
+	rate=$3
+	eta=$4
 fi
 
-if [[ $status -eq 0 ]]; then
-	echo '{"status":"'$status'", filename":"", "progress":"0", "elapsed-time":"", "rate":"", "transfered":""}'
+# Simple check that we at lease have 4 elements....
+if [[ -z "$eta" ]]; then
+	echo '{"status":"0", filename":"", "progress":"0", "eta":"", "rate":"", "transfered":""}'
 else
-	echo '{"status":"'$status'", filename":"'$filename'", "progress":"'${progress[1]}'", "elapsed-time":"'${progress[3]}'", "rate":"'${progress[2]}'", "transfered":"'${progress[0]}'"}'
+	echo '{"status":"1", "filename":"'$filename'", "progress":"'$progress'", "eta":"'$eta'", "rate":"'$rate'", "transfered":"'$transfered'"}'
 fi

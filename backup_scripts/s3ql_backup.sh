@@ -156,11 +156,12 @@ excludelist=$(mktemp -t excludelist.XXXX)
 echo "Exclude file: $excludelist"
 find "${nextcloud_dir}" -name $excludepattern -exec dirname {} >> $excludelist \;
 sed -i s%${nextcloud_dir}%% $excludelist
+
 echo "Excluded files:"
 cat $excludelist
+echo "---  End list ---"
 
-
-
+echo "Starting data sync"
 set +e
 
 rsync -aHAXxPh --delete-during --delete-excluded --partial --info=progress2 \

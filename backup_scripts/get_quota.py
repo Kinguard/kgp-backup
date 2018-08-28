@@ -119,14 +119,6 @@ if __name__=='__main__':
     response['mounted'] = False
     response['valid'] = False
 
-
-    try:
-        unitid = GetKeyAsString("hostinfo","unitid")
-        dprint("UnitID: %s" % unitid)
-    except Exception as e:
-        dprint("Failed to read 'unitid' parameter")
-        dprint(e)
-        terminate(1)
     try:
         backend = GetKeyAsString("backup","backend")
         response['backend'] = backend
@@ -135,7 +127,16 @@ if __name__=='__main__':
         dprint(e)
         terminate(1)
 
+    dprint("Using backend: %s" % backend)
     if (backend == "s3op://") or (backend == "none"):
+        try:
+            unitid = GetKeyAsString("hostinfo","unitid")
+            dprint("UnitID: %s" % unitid)
+        except Exception as e:
+            dprint("Failed to read 'unitid' parameter")
+            dprint(e)
+            terminate(1)
+
         #report server quota even if service is not active.
         try:
             token = AuthLogin()
