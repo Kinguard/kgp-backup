@@ -220,16 +220,16 @@ do
 	fi
 done
 
-rsync -qaHAXx --delete-during --delete-excluded --partial \
+rsync -qaHAXx --delete-during --delete-excluded --partial --info=progress2\
 	$sys_filelist \
-    "./${new_backup}/${systemdir}/etc/opi" 
+    "./${new_backup}/${systemdir}/etc/opi"  > ${progressfile}
 
 rsync_etc=$?
 echo "RSYNC /etc/opi: $rsync_etc"
 
 
 echo "Copy system files (/var/opi/ + misc)"
-rsync -qaHAXx --delete-during --delete-excluded --partial \
+rsync -qaHAXx --delete-during --delete-excluded --partial --info=progress2\
     --exclude "nextcloud/data" \
     --exclude "etc/backup/.s3ql_cache" \
     --exclude "mysql" \
@@ -238,7 +238,7 @@ rsync -qaHAXx --delete-during --delete-excluded --partial \
     "/usr/share/nextcloud/config/config.php" \
     "/etc/postfix/main.cf" "/etc/mailname" \
     "/etc/shadow" \
-    "./${new_backup}/${systemdir}" 
+    "./${new_backup}/${systemdir}"  > ${progressfile}
 
 rsync_system=$?
 echo "RSYNC system: $rsync_system"
