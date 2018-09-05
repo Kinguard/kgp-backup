@@ -106,6 +106,16 @@ else
 	exit_fail 1 "Missing 'backup->devicemountpath' parameter in 'sysconfig'"
 fi
 
+if [ -z "$auth_file" ]
+then
+	if auth_file=$(kgp-sysinfo -c backup -k authfile -p); then
+		debug "Using '$auth_file' for auth."
+	else
+		exit_fail 1 "Missing 'backup->authfile' parameter in 'sysconfig'"
+	fi
+
+fi
+
 bucket=$(kgp-sysinfo -c backup -k bucket -p)
 
 

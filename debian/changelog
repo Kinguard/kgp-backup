@@ -1,3 +1,9 @@
+opi-backup (2.3.27) vili; urgency=medium
+
+  * Move authfile parameter to sysconfig.
+
+ -- PA Nilsson <pa@openproducts.se>  Wed, 05 Sep 2018 11:23:09 +0200
+
 opi-backup (2.3.26) vili; urgency=medium
 
   * Support local and amazon backends without unitid. 

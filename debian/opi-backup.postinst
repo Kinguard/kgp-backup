@@ -34,11 +34,17 @@ case "$1" in
 	fi
 
 
-    # mountpath has previously been static in "backup.conf", move it to sysconfig
+    # mountpath and authfile has previously been static in "backup.conf", move it to sysconfig
     if [ ! $(kgp-sysinfo -c backup -k devicemountpath) ]
     then
         kgp-sysinfo -c backup -k devicemountpath -w "/mnt/usb"
     fi
+
+    if [ ! $(kgp-sysinfo -c backup -k authfile) ]
+    then
+        kgp-sysinfo -c backup -k authfile -w "/var/opi/etc/backup/auth.conf"
+    fi
+
 
 	if [ -e /var/opi/etc/backup/target.conf ]
 	then
