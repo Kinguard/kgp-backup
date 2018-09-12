@@ -1,3 +1,9 @@
+opi-backup (2.3.28) vili; urgency=medium
+
+  * Update restore script so that rsync formats output the same way as backup script. 
+
+ -- PA Nilsson <pa@openproducts.se>  Wed, 12 Sep 2018 14:43:09 +0200
+
 opi-backup (2.3.27) vili; urgency=medium
 
   * Move authfile parameter to sysconfig.

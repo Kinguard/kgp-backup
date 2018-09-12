@@ -2,6 +2,7 @@
 #set -e
 
 echo "Start restore operation"
+source backup.conf
 
 if [ $# -lt 1 ]
 then 
@@ -10,9 +11,24 @@ then
 fi 
 
 RESTOREPATH=$1
+BASEPATH=$2
 MYSQLCONF=/usr/share/opi-backup/my.cnf
 
+state=0
+max_states=10
+
 echo "Restore from $RESTOREPATH"
+echo "Using basepath: '$BASEPATH'"
+
+function state_update {
+	if [[ -z "$state" ]]; then
+		state=1
+	else
+		state=$((state + 1))
+	fi
+	echo $1
+	echo '{"state":"'$state'", "desc":"'$1'","max_states":"'$max_states'"}' > $statefile
+}
 
 function mp()
 { 
@@ -57,9 +73,10 @@ function stopsql()
 	mysqladmin --defaults-file=$MYSQLCONF shutdown
 }
 
-echo "Clean install target"
+state_update "Clean install target"
+
 # Make sure we have no dangling certs
-rm /mnt/opi/etc/*.pem
+rm -f $BASEPATH/mnt/opi/etc/*.pem
 
 # Copy data from backup
 
@@ -67,51 +84,54 @@ echo -n "Reading unit-id: "
 unit_id=$(kgp-sysinfo -p -c hostinfo -k unitid)
 echo "$unit_id"
 
-echo "Restore system data"
+state_update "Restore system data"
 # owncloud data has incorreclty been included in older backups, no need to restore that here.
-rsync -a --info=progress2 --exclude "owncloud/data" $RESTOREPATH/system/opi /mnt/
+mkdir -p $BASEPATH/mnt/
+rsync -ahv --info=progress2 --exclude "owncloud/data" $RESTOREPATH/system/opi $BASEPATH/mnt/  > ${progressfile}
 
-echo "Restore system configs"
-rsync -a --info=progress2 $RESTOREPATH/system/etc/opi /etc/
+state_update "Restore system configs"
+mkdir -p $BASEPATH/etc/
+rsync -ahv --info=progress2 $RESTOREPATH/system/etc/opi $BASEPATH/etc/  > ${progressfile}
 
 # Restore unit-id as this can be different if restored on a new system with a new unit-id
-#sed -i 's/\(unit_id=\)\(.*\)$/\1$unit_id/' /etc/opi/sysinfo.conf
 kgp-sysinfo -w "$unit_id" -c "hostinfo" -k "unitid"
 
-echo "Restore user data"
-rsync -a --info=progress2 $RESTOREPATH/userdata/* /mnt/opi/nextcloud/data/
+state_update "Restore user data"
+mkdir -p $BASEPATH/mnt/opi/nextcloud/data/
+rsync -ahv --info=progress2 $RESTOREPATH/userdata/* $BASEPATH/mnt/opi/nextcloud/data/  > ${progressfile}
 
-echo "Fixup environment"
+state_update "Setup environment and file permissions"
 # Make sure OC gets its precious stamp file
-touch /mnt/opi/nextcloud/data/.ocdata
+touch $BASEPATH/mnt/opi/nextcloud/data/.ocdata
 
 # setup correct permissions
-chmod 0755 /mnt/opi
+chmod 0755 $BASEPATH/mnt/opi
 
-chown -R fetchmail:nogroup /mnt/opi/fetchmail/
-chmod 755 /mnt/opi/etc/
-chmod 0755 /mnt/opi/mail/
-chown -R postfix:postfix /mnt/opi/mail/*
-chown -R 5000:5000 /mnt/opi/mail/data
-chmod 0770 /mnt/opi/mail/data/
+chown -R fetchmail:nogroup $BASEPATH/mnt/opi/fetchmail/
+chmod 755 $BASEPATH/mnt/opi/etc/
+chmod 0755 $BASEPATH/mnt/opi/mail/
+chown -R postfix:postfix $BASEPATH/mnt/opi/mail/*
+chown -R 5000:5000 $BASEPATH/mnt/opi/mail/data
+chmod 0770 $BASEPATH/mnt/opi/mail/data/
 
-chmod 0755 /mnt/opi/nextcloud/
-chown -R  www-data:www-data /mnt/opi/nextcloud/data
-chmod -R og+w /mnt/opi/nextcloud/data
+chmod 0755 $BASEPATH/mnt/opi/nextcloud/
+chown -R  www-data:www-data $BASEPATH/mnt/opi/nextcloud/data
+chmod -R og+w $BASEPATH/mnt/opi/nextcloud/data
 
-chmod 0755 /mnt/opi/roundcube/
-chown -R www-data:www-data /mnt/opi/roundcube/*
+chmod 0755 $BASEPATH/mnt/opi/roundcube/
+chown -R www-data:www-data $BASEPATH/mnt/opi/roundcube/*
 
-chown -R secop:secop /mnt/opi/secop
+chown -R secop:secop $BASEPATH/mnt/opi/secop
 
 startsql
 
 # Import contacts and calendars
-echo "Import contacts and calendars"
+state_update "Import contacts and calendars"
 
 php /usr/share/nextcloud/calendars_import.php "$RESTOREPATH/userdata"
 php /usr/share/nextcloud/contacts_import.php "$RESTOREPATH/userdata"
 
 stopsql
 
-echo "Done with restore for $RESTOREPATH"
+echo "Used $states states."
+state_update "Done with restore for $RESTOREPATH using $BASEPATH"

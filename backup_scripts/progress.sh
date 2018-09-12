@@ -27,8 +27,9 @@ if [[ -e $progressfile ]];then
 fi
 
 # Simple check that we at lease have 4 elements....
-if [[ -z "$eta" ]]; then
-	echo '{"status":"0", filename":"", "progress":"0", "eta":"", "rate":"", "transfered":""}'
+# also check that the filename is valid.
+if [[ -z "$eta" ]] && [[ -e $filename ]]; then
+	echo '{"status":"0", "filename":"", "progress":"0", "eta":"", "rate":"", "transfered":""}'
 else
 	echo '{"status":"1", "filename":"'$filename'", "progress":"'$progress'", "eta":"'$eta'", "rate":"'$rate'", "transfered":"'$transfered'"}'
 fi
