@@ -95,10 +95,6 @@ done
 exec {lock_fd}>"${MOUNTLOCK}"
 flock -n "$lock_fd" || { echo "Mount process already running"; exit_fail $ScriptRunning; }
 
-if ! enabled=$(kgp-sysinfo -c backup -k enabled -p) || [ $enabled -eq 0 ]; then
-	debug "Backup disabled"
-	exit 0
-fi
 
 if device_mountpath=$(kgp-sysinfo -c backup -k devicemountpath -p); then
 	debug "Using local mount path '$device_mountpath'"
@@ -121,6 +117,11 @@ bucket=$(kgp-sysinfo -c backup -k bucket -p)
 
 if [ $restore -ne 1 ]
 then
+	if ! enabled=$(kgp-sysinfo -c backup -k enabled -p) || [ $enabled -eq 0 ]; then
+		debug "Backup disabled"
+		exit 0
+	fi
+	
 	if backend=$(kgp-sysinfo -p -c backup -k backend) ; then
 		if [[ $backend == 'none' ]] ; then
 			debug "Backup disabled"

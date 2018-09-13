@@ -2,6 +2,10 @@
 #set -e
 
 echo "Start restore operation"
+src=$(realpath "${BASH_SOURCE[0]}")
+DIR=$(dirname $src)
+cd $DIR
+
 source backup.conf
 
 if [ $# -lt 1 ]
