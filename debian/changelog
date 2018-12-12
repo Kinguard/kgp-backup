@@ -1,3 +1,10 @@
+opi-backup (2.3.30) vili; urgency=medium
+
+  * Improved handing of existing but empty progress file. 
+  * Pipe expire_backup statefile through json_pp which seems to ba a more robust parser.
+
+ -- PA Nilsson <pa@openproducts.se>  Wed, 12 Dec 2018 10:38:52 +0100
+
 opi-backup (2.3.29) vili; urgency=medium
 
   * Various minor updates to restore and progress scripts. 

@@ -19,7 +19,7 @@ BASEPATH=$2
 MYSQLCONF=/usr/share/opi-backup/my.cnf
 
 state=0
-max_states=10
+max_states=7
 
 echo "Restore from $RESTOREPATH"
 echo "Using basepath: '$BASEPATH'"
@@ -138,4 +138,4 @@ php /usr/share/nextcloud/contacts_import.php "$RESTOREPATH/userdata"
 stopsql
 
 echo "Used $states states."
-state_update "Done with restore for $RESTOREPATH using $BASEPATH"
+state_update "Done with restore for $RESTOREPATH"

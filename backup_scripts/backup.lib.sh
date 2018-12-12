@@ -129,8 +129,11 @@ function check_expire_state {
     local statestatus
     if [[ -e $statefile ]]; then
         # temporary allow failure
+        # for some reason trailing characters are added to the json object.
+        # json_pp can read it but 'expire backups can't
+        # so if json_pp can read it, do so and write it back again.
         set +e
-        content=$(cat .expire_backups.dat | json_pp -json_opt allow_singlequote &> /dev/null)
+        content=$(cat $statefile | json_pp -json_opt allow_singlequote > $statefile)
         statestatus=$?
         set -e
         if [[ $statestatus -ne 0 ]]; then
