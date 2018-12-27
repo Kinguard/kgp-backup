@@ -146,7 +146,7 @@ fi
 version=$(dpkg -s opi-backup | sed -n 's/Version:\s*\([0-9\.]*\)/\1/p')
 
 # write temporary "fail" status msg
-echo '{"date":"'$new_backup'", "status":"fail", "script_version":"'$version'"}' > ./${new_backup}/status.json
+echo '{"date":"'$this_backup'", "status":"fail", "script_version":"'$version'"}' > ./${new_backup}/status.json
 
 # ..and update the copy
 state_update "Copy user files"
