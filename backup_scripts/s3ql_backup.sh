@@ -200,7 +200,7 @@ fi
 state_update "Copy mail and system files (/etc/)"
 if [[ ! -d "./${new_backup}/${systemdir}/etc/opi" ]]; then
 	mkdir -p ./${new_backup}/${systemdir}/etc/opi
-	find "./${new_backup}/${systemdir}" -type d -print0 | xargs -0 chmod 755
+	chmod 755 ./${new_backup}/${systemdir}/etc/opi
 fi
 
 sysfiles="
@@ -238,8 +238,18 @@ rsync -qaHAXx --delete-during --delete-excluded --partial --info=progress2\
     "/usr/share/nextcloud/config/config.php" \
     "/etc/postfix/main.cf" "/etc/mailname" \
     "/etc/shadow" \
-	"/etc/kinguard/sysconfig.json" \
     "./${new_backup}/${systemdir}"  > ${progressfile}
+
+rsync_system=$?
+echo "RSYNC system: $rsync_system"
+
+
+
+echo "Copy kinguard files (/etc/kinguard/)"
+
+rsync -qaHAXx --delete-during --delete-excluded --partial --info=progress2\
+    "/etc/kinguard" \
+    "./${new_backup}/${systemdir}/etc/"  > ${progressfile}
 
 rsync_system=$?
 echo "RSYNC system: $rsync_system"

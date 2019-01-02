@@ -96,12 +96,7 @@ rsync -ahv --info=progress2 --exclude "owncloud/data" $RESTOREPATH/system/opi $B
 state_update "Restore system configs"
 mkdir -p $BASEPATH/etc/
 rsync -ahv --info=progress2 $RESTOREPATH/system/etc/opi $BASEPATH/etc/  > ${progressfile}
-
-# Manually copy sysconfig since it is not in the "right" place
-if [ -e $RESTOREPATH/system/sysconfig.json ]; then
-	# not in old backups.
-	cp $RESTOREPATH/system/sysconfig.json /etc/kinguard/
-fi
+rsync -ahv --info=progress2 $RESTOREPATH/system/etc/kinguard $BASEPATH/etc/  > ${progressfile}
 
 # Restore unit-id as this can be different if restored on a new system with a new unit-id
 kgp-sysinfo -w "$unit_id" -c "hostinfo" -k "unitid"
