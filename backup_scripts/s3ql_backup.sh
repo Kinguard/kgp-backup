@@ -200,6 +200,7 @@ fi
 state_update "Copy mail and system files (/etc/)"
 if [[ ! -d "./${new_backup}/${systemdir}/etc/opi" ]]; then
 	mkdir -p ./${new_backup}/${systemdir}/etc/opi
+	find "./${new_backup}/${systemdir}" -type d -print0 | xargs -0 chmod 755
 fi
 
 sysfiles="
@@ -211,7 +212,6 @@ sysfiles="
 /etc/opi/web_key.pem 
 /etc/opi/org_cert.pem 
 /etc/opi/org_key.pem
-/etc/kinguard/sysconfig.json
 "
 for file in $sysfiles
 do
@@ -238,6 +238,7 @@ rsync -qaHAXx --delete-during --delete-excluded --partial --info=progress2\
     "/usr/share/nextcloud/config/config.php" \
     "/etc/postfix/main.cf" "/etc/mailname" \
     "/etc/shadow" \
+	"/etc/kinguard/sysconfig.json" \
     "./${new_backup}/${systemdir}"  > ${progressfile}
 
 rsync_system=$?
@@ -269,19 +270,19 @@ state_update "Dump SQL database"
 state_update "Setting file permissions"
 
 echo "Change ownership"
-chown -R root:www-data "./${new_backup}"
-chown -R root:root "./${new_backup}/${systemdir}"
+chown -R root:www-data "./${new_backup}/${userdata}"
+#chown -R root:root "./${new_backup}/${systemdir}"
 
 # Set directories to read and excute for group
 # and files to read only
-echo "Set permissions on user files"
-find "./${new_backup}" -type d -print0 | xargs -0 chmod 750 
-find "./${new_backup}" -type f -print0 | xargs -r0 chmod 640  # there might not be any user files
+#echo "Set permissions on user files"
+#find "./${new_backup}" -type d -print0 | xargs -0 chmod 750 
+#find "./${new_backup}" -type f -print0 | xargs -r0 chmod 640  # there might not be any user files
 
 # only allow root access to system files
-echo "Set permissions on system files"
-find "./${new_backup}/${systemdir}" -type d -print0 | xargs -0 chmod 700 
-find "./${new_backup}/${systemdir}" -type f -print0 | xargs -r0 chmod 600
+#echo "Set permissions on system files"
+#find "./${new_backup}/${systemdir}" -type d -print0 | xargs -0 chmod 755 
+#find "./${new_backup}/${systemdir}" -type f -print0 | xargs -r0 chmod 655
 
 # write "success" status msg
 echo '{"date":"'$new_backup'", "status":"ok", "script_version":"'$version'"}' > ./${new_backup}/status.json
