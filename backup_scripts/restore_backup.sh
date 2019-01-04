@@ -96,7 +96,12 @@ rsync -ahv --info=progress2 --exclude "owncloud/data" $RESTOREPATH/system/opi $B
 state_update "Restore system configs"
 mkdir -p $BASEPATH/etc/
 rsync -ahv --info=progress2 $RESTOREPATH/system/etc/opi $BASEPATH/etc/  > ${progressfile}
-rsync -ahv --info=progress2 $RESTOREPATH/system/etc/kinguard $BASEPATH/etc/  > ${progressfile}
+
+# Not sure old backup contains /etc/kinguard
+if [ -d $RESTOREPATH/system/etc/kinguard ]
+then
+	rsync -ahv --info=progress2 $RESTOREPATH/system/etc/kinguard $BASEPATH/etc/  > ${progressfile}
+fi
 
 # Restore unit-id as this can be different if restored on a new system with a new unit-id
 kgp-sysinfo -w "$unit_id" -c "hostinfo" -k "unitid"
@@ -110,6 +115,7 @@ state_update "Setup environment and file permissions"
 touch $BASEPATH/mnt/opi/nextcloud/data/.ocdata
 
 # setup correct permissions
+chmod 0755 $BASEPATH/etc/opi
 chmod 0755 $BASEPATH/mnt/opi
 
 chown -R fetchmail:nogroup $BASEPATH/mnt/opi/fetchmail/

@@ -1,3 +1,10 @@
+opi-backup (2.3.34) vili; urgency=medium
+
+  * Only restore /etc/kinguard if present in backup
+  * Fixup permissions of /etc/opi upon restore
+
+ -- Tor Krill <tor@openproducts.se>  Thu, 03 Jan 2019 23:24:39 +0100
+
 opi-backup (2.3.33) vili; urgency=medium
 
   * Include /etc/kinguard in backup 

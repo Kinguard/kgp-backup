@@ -1,0 +1,11 @@
+#! /bin/bash
+
+#
+# This is a fixup for #524 wrong access mode on /etc/opi
+#
+
+
+if [ -d /etc/opi ]
+then
+	chmod 0755 /etc/opi
+fi
