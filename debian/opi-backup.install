@@ -1,5 +1,4 @@
 backup_scripts/*	/usr/share/opi-backup 	
 nextcloud_scripts/*	/usr/share/nextcloud
-ccheck/50-opi-backup	/etc/kinguard/scripts/ccheck
 backup_cron			/etc/cron.daily
 
