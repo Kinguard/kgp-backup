@@ -62,7 +62,10 @@ case "$1" in
         	fi
             kgp-sysinfo -c backup -k backend -w "$backend"
         else
-        	kgp-sysinfo -b -c backup -k enabled -w "false"	
+		if [ ! $(kgp-sysinfo -c backup -k enabled) ]
+		then
+        		kgp-sysinfo -b -c backup -k enabled -w "false"	
+		fi
         fi
 
         bucket=$(sed -n 's/bucket=\"?\([a-z0-9\.\-]*\)\"?$/\1/ p' <$oldconfig)
