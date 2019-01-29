@@ -1,3 +1,9 @@
+opi-backup (2.3.36) vili; urgency=medium
+
+  * Fix date in status.json 
+
+ -- PA Nilsson <pa@openproducts.se>  Tue, 29 Jan 2019 08:49:04 +0100
+
 opi-backup (2.3.35) vili; urgency=medium
 
   * Remove ccheck script that does not belong here

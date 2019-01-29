@@ -295,7 +295,7 @@ chown -R root:www-data "./${new_backup}/${userdata}"
 #find "./${new_backup}/${systemdir}" -type f -print0 | xargs -r0 chmod 655
 
 # write "success" status msg
-echo '{"date":"'$new_backup'", "status":"ok", "script_version":"'$version'"}' > ./${new_backup}/status.json
+echo '{"date":"'$this_backup'", "status":"ok", "script_version":"'$version'"}' > ./${new_backup}/status.json
 
 # rename backup
 mv ${new_backup} $this_backup
