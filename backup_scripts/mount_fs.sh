@@ -64,6 +64,21 @@ restore=0
 limit=1
 
 
+function usage() {
+	echo "Usage: $0 [options]"
+	echo "       -a authfile   authfile to use"
+	echo "       -b backend    backend to use" 
+	echo "       -m mountpoint mountpoint"
+	echo "       -r            mount as for restore"
+	echo "       -l limit      ??"
+	echo "       -p            Dont use colors in output"
+	echo "       -f            Force mount of locked system"
+	echo "                     useful for debug."
+	echo "       -?            This help"
+	exit 1
+}
+
+
 # cmd-line overrides config file parameters.
 while getopts "b:a:m:l:rdpf" opt; do
 	case "$opt" in
@@ -87,7 +102,8 @@ while getopts "b:a:m:l:rdpf" opt; do
 		# use to force mount on a locked system, useful for debug.
 		force=1
 		;;
-	?)	exit 1
+	?)
+		usage
 		;;
 	esac
 done

@@ -51,7 +51,7 @@ nc="\033[0m"
 function debug {
     # redirect debug log to stderr
     if [[ $DEBUG -ne 0 ]]; then
-        (>&2 echo "   $1")
+	logger -s -p daemon.notice "kgp-backup: $1"
     fi
 }
 
