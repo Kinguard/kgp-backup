@@ -1,3 +1,10 @@
+opi-backup (2.3.38) vili; urgency=medium
+
+  * Fix directory permissions on userbackup #556
+  * Exclude sysbackup from user restore #557
+
+ -- Tor Krill <tor@openproducts.se>  Tue, 07 May 2019 14:28:54 +0200
+
 opi-backup (2.3.37) vili; urgency=medium
 
   * Do not disable on upgrade with existing sysconfig setting. 
