@@ -283,6 +283,10 @@ echo "Change ownership"
 chown -R root:www-data "./${new_backup}/${userdata}"
 #chown -R root:root "./${new_backup}/${systemdir}"
 
+# A bit duplication on below commented out permissions settings
+# But this is needed to allow access to directories in backup #556
+find "./${new_backup}/${userdata}/" -type d -exec chmod g+r+x {} \;
+
 # Set directories to read and excute for group
 # and files to read only
 #echo "Set permissions on user files"
