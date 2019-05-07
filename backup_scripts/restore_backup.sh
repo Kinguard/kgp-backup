@@ -108,7 +108,7 @@ kgp-sysinfo -w "$unit_id" -c "hostinfo" -k "unitid"
 
 state_update "Restore user data"
 mkdir -p $BASEPATH/mnt/opi/nextcloud/data/
-rsync -ahv --info=progress2 $RESTOREPATH/userdata/* $BASEPATH/mnt/opi/nextcloud/data/  > ${progressfile}
+rsync -ahv --info=progress2 --exclude "files/sysbackup" $RESTOREPATH/userdata/* $BASEPATH/mnt/opi/nextcloud/data/  > ${progressfile}
 
 state_update "Setup environment and file permissions"
 # Make sure OC gets its precious stamp file
