@@ -291,6 +291,13 @@ else
 				;;
 			*)
 				debug "'$version': Unexpected error from FSCK"
+				if [[ ! -z "$path" ]] && mountpoint -q "$path"
+				then
+					debug "Umounting $path since we failed"
+					sudo umount "$path"
+				else
+					debug "$path not mounted so we dont umount"
+				fi
 				;;
 		esac
 	done

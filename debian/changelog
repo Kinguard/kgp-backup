@@ -1,3 +1,9 @@
+opi-backup (2.3.40) vili; urgency=medium
+
+  * Make sure device umounted if unknown error during mount
+
+ -- Tor Krill <tor@openproducts.se>  Tue, 24 Sep 2019 09:10:26 +0200
+
 opi-backup (2.3.39) vili; urgency=medium
 
   * Buster update
