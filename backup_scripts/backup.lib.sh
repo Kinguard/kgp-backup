@@ -18,7 +18,7 @@ CURRENT_VERSION="v2_21"
 # files including this "lib"
 
 backends=( "local://" "s3op://" "s3://")
-versions=( "v2_21" "v2_7") # order here is important, it is prio order when only one can be used
+versions=( "v2_21" ) # order here is important, it is prio order when only one can be used
 
 
 declare -A mountpoints

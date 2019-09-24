@@ -1,3 +1,10 @@
+opi-backup (2.3.39) vili; urgency=medium
+
+  * Buster update
+  * Initial remove of legacy support
+
+ -- Tor Krill <tor@openproducts.se>  Fri, 30 Aug 2019 11:24:59 +0200
+
 opi-backup (2.3.38) vili; urgency=medium
 
   * Fix directory permissions on userbackup #556

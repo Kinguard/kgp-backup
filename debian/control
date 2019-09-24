@@ -8,9 +8,7 @@ Standards-Version: 3.9.4
 Package: opi-backup
 Architecture: all
 Depends: ${misc:Depends},
- s3ql,
- s3ql-legacy,
- llfuse-legacy,
+ kgp-s3ql-addons,
  rsync,
  anacron,
  php-secop,
