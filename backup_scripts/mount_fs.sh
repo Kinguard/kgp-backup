@@ -202,12 +202,8 @@ else
 				exit_fail 1 "Missing 'hostinfo->unitid' parameter in 'sysconfig'"
 			fi
 
-
-			if ca_path=$(kgp-sysinfo -c hostinfo -k cafile -p); then
-				debug "Using CA-file '$ca_path'"
-			else
-				exit_fail 1 "Missing 'hostinfo->cafile' parameter in 'sysconfig'"
-			fi
+			# TODO: Remove all references to ca_path
+			ca_path=" "
 			;;
 		"local://")
 			# check if we have a usb-mem mounted somewhere

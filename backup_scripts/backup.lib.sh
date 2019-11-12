@@ -314,11 +314,7 @@ function get_urls {
             storage_urls[$version]="${backend}${localpath}${local_fsprefix[$version]}"
         elif [[ $backend == *s3op://* ]]; then
             storage_urls[$version]="${backend}$storage_server/${unit_id}${s3op_fsprefix[$version]}"
-            if [[ $version == "v2_21" ]]; then
-                CA[$version]="--backend-options ssl-ca-path=${ca_path}"
-            elif [[ $version == "v2_7" ]]; then
-                CA[$version]="--ssl-ca-path=${ca_path}"
-            fi
+            CA[$version]=" "
         elif [[ $backend == *s3://* ]]; then
             if [ -z "$bucket" ]; then
                 debug "Missing Bucket"

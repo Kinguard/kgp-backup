@@ -148,17 +148,7 @@ if __name__=='__main__':
             import ssl
             import http.client
 
-            ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-
-            ctx.options |= ssl.OP_NO_SSLv2
-            ctx.verify_mode = ssl.CERT_REQUIRED
-
-            try:
-                ctx.load_verify_locations( GetKeyAsString("hostinfo","cafile") )
-            except Exception as e:
-                dprint("CA file error")
-                dprint(e)
-                terminate(1)
+            ctx = ssl.create_default_context()
 
             conn = http.client.HTTPSConnection(AUTH_SERVER, 443, context=ctx)
 
