@@ -273,36 +273,23 @@ set -e
 state_update "Dump SQL database"
 /usr/bin/mysqldump -uroot -p${mysql_pwd} --all-databases > "./${new_backup}/${systemdir}/opi.sql"
 
-# Make the new backup immutable
-# ${s3ql_path}s3qllock "$new_backup"
-
 # Change ownership and set access rights
 state_update "Setting file permissions"
 
 echo "Change ownership"
 chown -R root:www-data "./${new_backup}/${userdata}"
-#chown -R root:root "./${new_backup}/${systemdir}"
 
-# A bit duplication on below commented out permissions settings
-# But this is needed to allow access to directories in backup #556
+# This is needed to allow access to directories in backup #556
 find "./${new_backup}/${userdata}/" -type d -exec chmod g+r+x {} \;
-
-# Set directories to read and excute for group
-# and files to read only
-#echo "Set permissions on user files"
-#find "./${new_backup}" -type d -print0 | xargs -0 chmod 750 
-#find "./${new_backup}" -type f -print0 | xargs -r0 chmod 640  # there might not be any user files
-
-# only allow root access to system files
-#echo "Set permissions on system files"
-#find "./${new_backup}/${systemdir}" -type d -print0 | xargs -0 chmod 755 
-#find "./${new_backup}/${systemdir}" -type f -print0 | xargs -r0 chmod 655
 
 # write "success" status msg
 echo '{"date":"'$this_backup'", "status":"ok", "script_version":"'$version'"}' > ./${new_backup}/status.json
 
 # rename backup
 mv ${new_backup} $this_backup
+
+echo "Making backup immutable"
+${s3ql_path}s3qllock "$this_backup"
 
 rm "${logdir}/errors/$this_backup"
 
