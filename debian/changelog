@@ -1,3 +1,9 @@
+opi-backup (2.3.41) vili; urgency=medium
+
+  * Make backups immutable
+
+ -- Tor Krill <tor@openproducts.se>  Tue, 26 Nov 2019 10:15:45 +0100
+
 opi-backup (2.3.40) vili; urgency=medium
 
   * Make sure device umounted if unknown error during mount
