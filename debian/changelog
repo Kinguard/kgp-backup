@@ -1,3 +1,9 @@
+opi-backup (2.3.42) vili; urgency=medium
+
+  * Add kinguard specific expire backup script
+
+ -- Tor Krill <tor@openproducts.se>  Tue, 03 Dec 2019 09:35:33 +0100
+
 opi-backup (2.3.41) vili; urgency=medium
 
   * Make backups immutable
