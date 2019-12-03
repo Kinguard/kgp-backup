@@ -2,68 +2,92 @@
 
 import os
 import re
+import json
 import shutil
+import textwrap
+import argparse
 from syslog import *
 from datetime import *
 from dateutil.parser import parse
 
-# Interval in weeks, should be sorted
-# from now and back in time
-# 1 - this week
-# 2 - last week etc
-#
-# example
-# intervals = [
-#   [1,1], This week
-#   [2,3], last week and third week from now
-
-intervals =[
-	#Start	stop	nr to keep. <0 keep all
-	[1,		1,		-1],
-	[2,		2,		-1],
-	[3,		6,		4],
-	[7,		10,		1],
-	[11,	14,		1],
-	[15,	19,		1],
-	[20,	52,		32],
-]
-
 openlog("expirebackup",LOG_PERROR, LOG_DAEMON)
-#setlogmask(LOG_UPTO(LOG_DEBUG))
-setlogmask(LOG_UPTO(LOG_INFO))
-
 
 def log(msg):
-	print(msg)
-#	syslog( LOG_INFO, msg )
+	syslog( LOG_INFO, msg )
 
 def err(msg):
-	print(msg)
-#	syslog( LOG_ERR, msg )
+	syslog( LOG_ERR, msg )
 
 def debug(msg):
-	print(msg)
-	#syslog( LOG_DEBUG, msg)
+	syslog( LOG_DEBUG, msg)
 
+
+parser = argparse.ArgumentParser(
+	formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+	description=textwrap.dedent('''\
+	kgp expire backups
+
+	Expire config is stored in a json file with the
+	following syntax
+
+	{
+		"backup":{
+		"expire":
+		[
+			[ 1, 2, -1], Last two weeks, keep everything
+			[ 3, 7, 5] Following 5 week, keep one from each week
+		]
+		}
+	}
+
+	Each tuple is made up with
+	start and stop of interval and the number of
+	backups to keep for the interval. An amount <0
+	indicates keep all in interval.
+
+	Note that the file is ordered backwards i.e.
+	now and back in time
+	'''))
+
+parser.add_argument('-c','--config', default="/etc/kinguard/backupconfig.json", help="Expire config file")
+parser.add_argument('-s','--status', action="store_true", help="Show current situation without action")
+parser.add_argument('-d','--debug', action="store_true", help="Debug logging")
+#parser.add_argument('-t','--test', action="store_true", help="Debug testing")
+parser.add_argument('--s3ql', action="store_true", help="Use s3qlrm to remove backups")
+parser.add_argument('path' ,help="Path to directory containing backups to be processed")
+
+args=parser.parse_args()
+
+if args.debug:
+	setlogmask(LOG_UPTO(LOG_DEBUG))
+else:
+	setlogmask(LOG_UPTO(LOG_INFO))
+
+debug("Using config: %s" % args.config)
+
+cfgfile=open(args.config)
+cfg=json.load(cfgfile)
+cfgfile.close()
+
+intervals = cfg["backup"]["expire"]
 
 # "Constants" to use
 now = datetime.now().replace(microsecond=0)
 week = timedelta(7)
+s3qlrm="/usr/bin/s3qlrm"
+
+if not os.access(s3qlrm, os.X_OK):
+	err("s3ql usage requested but s3qlrm executable not available")
+	exit(-1)
 
 
 # Debug and test functions
-
 import pprint
+
 pp = pprint.PrettyPrinter(indent=4)
-
-WD="./testdir"
-
 def createdir( dr ):
-	if not os.path.exists( WD+"/"+dr ):
-		os.mkdir( WD+"/"+dr )
-
-def inint( val, start, stop):
-	return start <= val <= stop
+	if not os.path.exists( args.path+"/"+dr ):
+		os.mkdir( args.path+"/"+dr )
 
 def setuptest(start = datetime(2018,12,27,12,34), stop = now):
 	createdir("")
@@ -72,7 +96,6 @@ def setuptest(start = datetime(2018,12,27,12,34), stop = now):
 		dr = start.isoformat('_')
 		createdir(dr)
 		start += timedelta(1)
-
 # end debug and test
 
 
@@ -153,7 +176,7 @@ def sortbackups(db):
 
 # Weed out all but mx backups from backups
 def weedsingle(backups, mx):
-	print("Weed all but %d backups" % mx)
+	debug("Weed all but %d backups" % mx)
 	ret = []
 	nbk = len(backups)
 	stp = int(nbk/mx)
@@ -190,48 +213,58 @@ def remove( backups ):
 
 	for b in backups:
 		dr = b.strftime("%Y-%m-%d_%H:%M:%S")
-		#debug("Remove "+WD+"/"+dr)
-		shutil.rmtree(WD+"/" +dr)
+		bpath=args.path+"/"+dr
+		if args.s3ql:
+			debug("Remove %s using s3qlrm"%bpath)
+			os.system( s3qlrm+" "+bpath )
+			pass
+		else:
+			debug("Remove %s"%bpath)
+			shutil.rmtree(bpath)
 
-setuptest()
+def dumpstatus():
+		backup_list = getbackups(args.path)
 
-backup_list = getbackups(WD)
+		btimes= stringtodatetime( backup_list)
 
-btimes = stringtodatetime( backup_list )
+		db = datesort( btimes )
+		ibackups = sortbackups(db)
 
-db = datesort( btimes )
+		print("Available backups in intervals - begin")
+		pp.pprint(ibackups)
+		print("Available backups - end")
 
-pp.pprint(db)
+def main():
 
-ibackups = sortbackups(db)
+	if args.status:
+		dumpstatus()
+		exit(0)
 
-print("ibackups - begin")
-pp.pprint(ibackups)
-print("ibackups - end")
+#	if args.test:
+#		setuptest()
 
-to_rm=weed(ibackups)
+	backup_list = getbackups(args.path)
 
-#print("to-remove-start")
-#pp.pprint(to_rm)
-#print("to-remove-end")
+	btimes = stringtodatetime( backup_list )
 
-remove(to_rm)
+	db = datesort( btimes )
 
+	if args.debug:
+		pp.pprint(db)
 
-backup_list = getbackups(WD)
+	ibackups = sortbackups(db)
 
-btimes= stringtodatetime( backup_list)
+	if args.debug:
+		print("ibackups - begin")
+		pp.pprint(ibackups)
+		print("ibackups - end")
 
-db = datesort( btimes )
+	to_rm=weed(ibackups)
 
-print("\n\n---- updated ----\n\n")
-#pp.pprint(db)
+	remove(to_rm)
 
-ibackups = sortbackups(db)
-
-print("ibackups updated - begin")
-pp.pprint(ibackups)
-print("ibackups updated - end")
+if __name__ == '__main__':
+    main()
 
 
 

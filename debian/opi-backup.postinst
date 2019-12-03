@@ -26,13 +26,17 @@ case "$1" in
 		ln -s /usr/share/opi-backup/link_backup.sh /etc/opi-control/completed/mount-backup
 	fi
 	
-    if [ ! -e /var/opi/etc/backup/auth.conf ]
+	if [ ! -e /var/opi/etc/backup/auth.conf ]
 	then
 		mkdir -p /var/opi/etc/backup
 		cp /usr/share/opi-backup/auth.conf /var/opi/etc/backup/
 		chmod 0600 /var/opi/etc/backup/auth.conf
 	fi
 
+	if [ ! -e /etc/kinguard/backupconfig.json ]
+	then
+		cp /usr/share/opi-backup/backupconfig.json /etc/kinguard/backupconfig.json
+	fi
 
     # mountpath and authfile has previously been static in "backup.conf", move it to sysconfig
     if [ ! $(kgp-sysinfo -c backup -k devicemountpath) ]

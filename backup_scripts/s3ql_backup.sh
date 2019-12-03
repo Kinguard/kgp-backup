@@ -326,8 +326,7 @@ do
 	version=$(path2ver $mntpath)
 	echo "Using version '$version'"
 	echo "Check state file status"
-	check_expire_state
-	sudo ${PYPATH[$version]}${s3qlpath[$version]}expire_backups --use-s3qlrm --reconstruct-state 1 7 14 31 90 180 360
+	sudo $DIR/expire.py -d --s3ql ${mntpath}
 	echo "Syncing filesystem"
 	sudo ${PYPATH[$version]}${s3qlpath[$version]}s3qlctrl flushcache ${mountpoints[$version]}
 done
