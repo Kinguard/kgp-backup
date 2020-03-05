@@ -23,9 +23,6 @@ if( count( $argv ) >= 2 )
 
 echo "Using outpath: $outpath\n";
 
-// Get any possible none OP users
-$users = OCP\User::getUsers();
-
 // Get users directly out of secop
 $s = new Secop();
 $s->sockauth();

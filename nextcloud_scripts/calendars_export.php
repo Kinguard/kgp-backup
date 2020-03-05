@@ -21,7 +21,6 @@ if( count( $argv ) >= 2 )
 
 try
 {
-	$users = OCP\User::getUsers();
 
 	// Get users directly out of secop
 	$s = new Secop();
