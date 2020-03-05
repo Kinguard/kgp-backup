@@ -1,3 +1,10 @@
+opi-backup (2.3.43) vili; urgency=medium
+
+  * Remove attempt to read native users from NC userdb
+    only use secop from now on.
+
+ -- Tor Krill <tor@openproducts.se>  Thu, 05 Mar 2020 14:30:56 +0100
+
 opi-backup (2.3.42) vili; urgency=medium
 
   * Add kinguard specific expire backup script
