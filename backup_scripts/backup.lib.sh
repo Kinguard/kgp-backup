@@ -442,6 +442,32 @@ function create_fs {
     return $retval
 }
 
+function upgrade_fs {
+    # using global $storage_urls
+    # $1 as version (defaults to CURRENT_VERSION)
+
+    debug "Attempting to upgrade filesystem"
+
+    local version
+    if [[ -z $1 ]]; then
+        version=$CURRENT_VERSION
+    else
+        version=$1
+    fi
+
+    # Upgrade fails with old cache data present
+    debug "Cleaning up cache: ${s3ql_cachedir}/*"
+    rm -rf ${s3ql_cachedir}/*
+    debug "Result $?"
+
+    #debug "sudo ${PYPATH[$version]}${s3qlpath[$version]}s3qladm --debug --log $log_file --cachedir ${s3ql_cachedir} --authfile ${auth_file} upgrade  ${storage_urls[$version]}"
+    sudo ${PYPATH[$version]}${s3qlpath[$version]}s3qladm --debug --log $log_file --cachedir ${s3ql_cachedir} --authfile ${auth_file} upgrade  ${storage_urls[$version]} &> /dev/null
+
+    local retval=$?
+    debug "Retval: $retval"
+    return $retval
+}
+
 function mount_fs {
     # using global $storage_urls
     # $1 as version (defaults to CURRENT_VERSION)

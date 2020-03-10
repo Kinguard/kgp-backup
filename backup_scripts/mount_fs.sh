@@ -279,6 +279,16 @@ else
 				debug "'$version': Invalid passphrase"
 				;;
 
+			32)
+				debug "OS version newer than filesystem, upgrade required"
+				if upgrade_fs
+				then
+					debug "Upgrade succesful, proceed try mounting"
+					valid_fs[$version]=0
+				else
+					debug "Upgrade failed!!"
+				fi
+				;;
 			$PossibleFSTooNew)
 				debug "'$version': Unexpected error, possible 2.21 FS with 2.7 backend."
 				;;

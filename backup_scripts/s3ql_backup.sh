@@ -70,7 +70,7 @@ echo "Backup started. This file shall be removed upon completion of the backup j
 echo "If the job is still running, this file is also present." >> "${logdir}/errors/$this_backup"
 state_update "Backup started"
 
-# mounnt_fs.sh also includes backup.lib.sh where a bunch of useful defines and functinos lives.
+# mount_fs.sh also includes backup.lib.sh where a bunch of useful defines and functions lives.
 source mount_fs.sh
 echo "Mount complete"
 

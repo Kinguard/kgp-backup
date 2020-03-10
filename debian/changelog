@@ -1,3 +1,9 @@
+opi-backup (2.3.44) vili; urgency=medium
+
+  * Add s3ql filesystem upgrade functionality
+
+ -- Tor Krill <tor@openproducts.se>  Tue, 10 Mar 2020 14:39:56 +0100
+
 opi-backup (2.3.43) vili; urgency=medium
 
   * Remove attempt to read native users from NC userdb
