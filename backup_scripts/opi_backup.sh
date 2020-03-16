@@ -74,8 +74,6 @@ done
 init_logs
 
 # Test if any backup operations are running.
-# the lock file is set by mount_fs which is sourced by "all" scripts (except this).
-# the lock is released with the script exits (either mount_fs directly of the scripte that sourced it.)
 exec {lock_fd}>${BACKUPLOCK}
 flock -n "$lock_fd" || { warn "LOG_INFO" "Unable to run backup, other backup opertations already running."; exit 0 ;}
 
