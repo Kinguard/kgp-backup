@@ -76,13 +76,8 @@ init_logs
 # Test if any backup operations are running.
 # the lock file is set by mount_fs which is sourced by "all" scripts (except this).
 # the lock is released with the script exits (either mount_fs directly of the scripte that sourced it.)
-exec {lock_fd}>${MOUNTLOCK}
+exec {lock_fd}>${BACKUPLOCK}
 flock -n "$lock_fd" || { warn "LOG_INFO" "Unable to run backup, other backup opertations already running."; exit 0 ;}
-
-# release the lock so that the mount process can get the lock
-flock -u "$lock_fd"
-
-
 
 if enabled=$(kgp-sysinfo -p -c backup -k enabled) ; then
 	if [[ $enabled -ne 1 ]] ; then
