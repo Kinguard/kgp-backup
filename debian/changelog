@@ -1,3 +1,9 @@
+opi-backup (2.3.45) vili; urgency=medium
+
+  * Separate locks between backup and mount
+
+ -- Tor Krill <tor@openproducts.se>  Mon, 16 Mar 2020 11:36:27 +0100
+
 opi-backup (2.3.44) vili; urgency=medium
 
   * Add s3ql filesystem upgrade functionality
