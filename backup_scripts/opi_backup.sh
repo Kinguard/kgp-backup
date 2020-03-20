@@ -87,6 +87,12 @@ else
 	exit 1
 fi
 
+# check for a locked system
+if locked=$(kgp-sysinfo -l) ; then
+       debug "Unit locked, not running backup"
+       exit 0
+fi
+
 
 
 msgid=$(kgp-notifier -l LOG_NOTICE -m "Backup started" -i "${ISSUER}")

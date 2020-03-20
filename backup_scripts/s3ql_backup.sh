@@ -59,13 +59,6 @@ if [ ! -d "$logdir/complete" ]; then
 	mkdir "$logdir/complete"
 fi
 
-# check for a locked system
-#if locked=$(kgp-sysinfo -l) ; then
-#	echo "Failed to run backup, unit locked."
-#	exit 99
-#fi
-
-
 echo "Backup started. This file shall be removed upon completion of the backup job." > "${logdir}/errors/$this_backup"
 echo "If the job is still running, this file is also present." >> "${logdir}/errors/$this_backup"
 state_update "Backup started"
