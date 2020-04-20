@@ -33,7 +33,7 @@ case "$1" in
 		chmod 0600 /var/opi/etc/backup/auth.conf
 	fi
 
-	if [ ! -e /etc/kinguard/backupconfig.json ]
+	if [ ! -e /etc/kinguard/backupconfig.json ] || md5sum --status -c /usr/share/opi-backup/backupconfig-faulty.json.md5
 	then
 		cp /usr/share/opi-backup/backupconfig.json /etc/kinguard/backupconfig.json
 	fi

@@ -53,6 +53,7 @@ parser.add_argument('-c','--config', default="/etc/kinguard/backupconfig.json", 
 parser.add_argument('-s','--status', action="store_true", help="Show current situation without action")
 parser.add_argument('-d','--debug', action="store_true", help="Debug logging")
 #parser.add_argument('-t','--test', action="store_true", help="Debug testing")
+parser.add_argument('-S', '--start', help="Use START date instead of current date when processing backups")
 parser.add_argument('--s3ql', action="store_true", help="Use s3qlrm to remove backups")
 parser.add_argument('path' ,help="Path to directory containing backups to be processed")
 
@@ -72,13 +73,31 @@ cfgfile.close()
 intervals = cfg["backup"]["expire"]
 
 # "Constants" to use
-now = datetime.now().replace(microsecond=0)
+if args.start:
+	now = parse(args.start)
+else:
+	now = datetime.now().replace(microsecond=0)
+debug("Using start date %s" % now)
+
 week = timedelta(7)
 s3qlrm="/usr/bin/s3qlrm"
 
-if not os.access(s3qlrm, os.X_OK):
+if args.s3ql and not os.access(s3qlrm, os.X_OK):
 	err("s3ql usage requested but s3qlrm executable not available")
 	exit(-1)
+
+
+# https://stackoverflow.com/questions/304256/whats-the-best-way-to-find-the-inverse-of-datetime-isocalendar
+def iso_year_start(iso_year):
+	"The gregorian calendar date of the first day of the given ISO year"
+	fourth_jan = date(iso_year, 1, 4)
+	delta = timedelta(fourth_jan.isoweekday()-1)
+	return fourth_jan - delta
+
+def iso_to_gregorian(iso_year, iso_week, iso_day):
+	"Gregorian calendar date for the given ISO year, week and day"
+	year_start = iso_year_start(iso_year)
+	return year_start + timedelta(days=iso_day-1, weeks=iso_week-1)
 
 
 # Debug and test functions
@@ -123,6 +142,9 @@ def datesort( backups ):
 	res = {}
 
 	for backup in backups:
+		if backup > now:
+			#debug("Backup from the future %s, skipping" % backup)
+			continue
 		(year, week, day) = backup.isocalendar()
 		if year not in res:
 			res[year]={}
@@ -163,29 +185,56 @@ def backupsininterval( db, start, stop ):
 	return ret
 
 # Sort backups into intervals
+# returns array with key interval and value list of backup dates as datetimes
 def sortbackups(db):
+	debug("Sort backups")
 	sort = {}
 	for i, ival in enumerate(intervals):
 		debug("Process interval %d - %d (%d)" % (ival[0], ival[1], ival[2]))
-		start = (now - (ival[0]-1)*week)
-		end = (now - (ival[1]-1)*week)
-		sort[i] = sorted(backupsininterval(db, ival[0], ival[1]))
+		isoend = (now - (ival[0])*week).isocalendar()
+		end = datetime.combine(iso_to_gregorian( isoend[0], isoend[1], 7), time.max)
+		start = (now - (ival[1])*week).replace(hour=0,minute=0,second=0)
+
+		sort[i] = {}
+		sort[i]["start"] = start
+		sort[i]["end"] = end
+		sort[i]["backups"] = sorted(backupsininterval(db, ival[0], ival[1]))
+	#debug("Sort backups done")
 	return sort
 
 
 
 # Weed out all but mx backups from backups
+# Backups, list of datetimes of backup
+# MX, max backups to keep
 def weedsingle(backups, mx):
+
+	start = backups["start"]
+	end = backups["end"]
+	backups = backups["backups"]
+
 	debug("Weed all but %d backups" % mx)
 	ret = []
 	nbk = len(backups)
 	stp = int(nbk/mx)
 
-	for x in range(1, nbk+1):
-		if x%stp != 0:
-			ret.append(backups[x-1])
+	i_total_days = ( end - start).days+1
+	i_days = round(i_total_days / (mx))
 
-	return ret
+	# find backup closest to keep for each interval point
+	keep = start
+	while keep <= end:
+		ipoint = keep + timedelta( i_days/2)
+
+		closest = [None, timedelta.max.total_seconds()]
+		for backup in backups:
+			delta = round(abs((ipoint - backup).total_seconds()))
+			if( delta < closest[1] ):
+				closest = [backup, delta]
+		backups.remove(closest[0])
+		keep += timedelta(i_days)
+
+	return backups
 
 
 # Return list with backups that should be removed
@@ -193,8 +242,8 @@ def weed( backups ):
 	ret = []
 	for key in backups:
 		mxb = intervals[key][2]
-		bcnt = len(backups[key])
-		debug("Process %d with %d backups keep %d" % (key, bcnt, mxb))
+		bcnt = len(backups[key]["backups"])
+		debug("Process range %d with %d backups keep %d" % (key, bcnt, mxb))
 
 		if mxb < 0:
 			debug("Nothing to do, keep all")
