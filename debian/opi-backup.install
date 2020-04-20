@@ -2,4 +2,4 @@ backup_scripts/*				/usr/share/opi-backup
 nextcloud_scripts/*				/usr/share/nextcloud
 backup_cron						/etc/cron.daily
 backupconfig.json				/usr/share/opi-backup
-backupconfig-faulty.json.md5	/usr/share/opi-backup
+debian/backupconfig-faulty.json.md5	/usr/share/opi-backup
