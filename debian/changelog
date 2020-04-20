@@ -1,3 +1,9 @@
+opi-backup (2.3.46) vili; urgency=medium
+
+  * Fix bug in expire functionality
+
+ -- Tor Krill <tor@openproducts.se>  Mon, 20 Apr 2020 15:13:25 +0200
+
 opi-backup (2.3.45) vili; urgency=medium
 
   * Separate locks between backup and mount
