@@ -251,11 +251,16 @@ function get_localpath {
         for device in ${backupdevice}; do
             debug "Checking if device '$device' is mounted"
             realpath=$(realpath $device)
-            grep -qs $realpath /proc/mounts
-            if [[ $? -eq 0 ]]; then
-                debug "Device $device is mounted, find out where"
-                localpath=$(grep $realpath /proc/mounts | awk '{print $2}')
-                break
+            if [ ! -z "$realpath" ]
+            then
+                grep -qs $realpath /proc/mounts
+                if [[ $? -eq 0 ]]; then
+                    debug "Device $device is mounted, find out where"
+                    localpath=$(grep $realpath /proc/mounts | awk '{print $2}')
+                    break
+                 fi
+            else
+                 debug "Path to device not found"
             fi
         done
     fi
