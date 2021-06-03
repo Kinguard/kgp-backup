@@ -7,6 +7,8 @@ set_time_limit(0);
 ini_set('display_errors', 'On');
 error_reporting(E_ALL);
 
+print "Contact import start\n";
+
 
 function makeuri()
 {
@@ -14,19 +16,33 @@ function makeuri()
 	return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x.vcf', mt_rand(0, 65535), mt_rand(0, 65535), mt_rand(0, 65535), mt_rand(16384, 20479), mt_rand(32768, 49151), mt_rand(0, 65535), mt_rand(0, 65535), mt_rand(0, 65535));
 }
 
+print "Pre req\n";
+
+use OCA\DAV\AppInfo\Application;
+use OCA\DAV\CardDAV\CardDavBackend;
+
 require_once "lib/base.php";
+
+print "Requirei\n";
 
 if (!OC::$CLI) {
 	echo "This script can be run from the command line only" . PHP_EOL;
 	exit(0);
 }
+print "not cli\n";
+$app = new Application();
+$cont = $app->getContainer();
+$app_mgr = $cont->get(AppManager::class);
 
-OCP\App::checkAppEnabled('contacts');
+print "App setup\n";
+
+if( ! $app_mgr->isInstalled('contacts') )
+{
+	print "Calendar not installed!\n";
+	exit(0);
+}
 
 echo "App enabled\n";
-
-use OCA\DAV\AppInfo\Application;
-use OCA\DAV\CardDAV\CardDavBackend;
 
 $inpath = ".";
 
@@ -105,10 +121,7 @@ try
 {
 
 	$dirs = glob($inpath ."/*", GLOB_ONLYDIR | GLOB_NOSORT);
-
-
-	$app = new Application();
-	$cDB = $app->getContainer()->query(CardDavBackend::class);
+	$cDB = $cont->get(CardDavBackend::class);
 
 
 	foreach( $dirs as $dir )

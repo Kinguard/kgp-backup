@@ -77,17 +77,26 @@ function import($filename, $cdb, $calid)
 
 require_once "lib/base.php";
 
+use OCA\DAV\AppInfo\Application;
+use OCA\DAV\CalDAV\CalDavBackend;
+
 if (!OC::$CLI) {
 	echo "This script can be run from the command line only" . PHP_EOL;
 	exit(0);
 }
 
-OCP\App::checkAppEnabled('calendar');
+$app = new Application();
+$cont = $app->getContainer();
+$app_mgr = $cont->get(AppManager::class);
+
+if( ! $app_mgr->isInstalled('calendar') )
+{
+	print "Calendar not installed!";
+	exit(0);
+}
 
 echo "Calendar enabled\n";
 
-use OCA\DAV\AppInfo\Application;
-use OCA\DAV\CalDAV\CalDavBackend;
 
 $inpath = ".";
 if( count( $argv ) >= 2 )
@@ -101,13 +110,16 @@ $dirs = glob($inpath ."/*", GLOB_ONLYDIR | GLOB_NOSORT);
 
 print_r($dirs);
 
-$app = new Application();
-$cDB = $app->getContainer()->query(CalDavBackend::class);
+$cDB = $cont->get(CalDavBackend::class);
+
+print "Got cdb\n";
 
 
 foreach( $dirs as $dir )
 {
 	$user = pathinfo( $dir, PATHINFO_BASENAME );
+
+	print "Process $user\n";
 
 	$calendars = glob( $dir . "/files/sysbackup/calendars/*", GLOB_NOSORT );
 

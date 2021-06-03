@@ -12,60 +12,68 @@ if (!OC::$CLI) {
 	exit(0);
 }
 
-OCP\App::checkAppEnabled('contacts');
+$app = new Application();
+$cont = $app->getContainer();
+$app_mgr = $cont->get(AppManager::class);
+
+if( ! $app_mgr->isInstalled('contacts') )
+{
+	print "Calendar not installed!\n";
+	exit(0);
+}
 
 $outpath = ".";
-
 if( count( $argv ) >= 2 )
 {
 	$outpath = $argv[1];
 }
 
-echo "Using outpath: $outpath\n";
-
-// Get users directly out of secop
-$s = new Secop();
-$s->sockauth();
-
-list($status, $rep) = $s->getusers();
-if ( $status )
+try
 {
-	foreach( $rep["users"] as $user )
-	{
-		$users[]=$user;
-	}
-}
+	// Get users directly out of secop
+	$s = new Secop();
+	$s->sockauth();
 
-$app = new Application();
-$cDB = $app->getContainer()->query(CardDavBackend::class);
-
-foreach( $users as $user )
-{
-	echo "Exporting contacts for user $user\n";
-	
-	// Ignore errors for now
-	$dir = $outpath . "/" . $user . "/files/sysbackup/contacts";
-	mkdir( $dir , 0700, true);
-	if( ! is_dir( $dir ) )
+	list($status, $rep) = $s->getusers();
+	if ( $status )
 	{
-		echo "Failed to create directory: $dir\n";
-		continue;
+		foreach( $rep["users"] as $user )
+		{
+			$users[]=$user;
+		}
 	}
 
-	$books = $cDB->getAddressBooksForUser("principals/users/$user");
+	$cDB = $cont->get(CardDavBackend::class);
 
-	foreach( $books as $book )
+	foreach( $users as $user )
 	{
-		$filename = $dir . '/' . str_replace(' ', '_', $user."_".$book["uri"]) . '.vcf';
-		echo "File: $filename\n";
-
-		$cards = $cDB->getCards( $book["id"] );
-
-		$contacts = '';
-		foreach($cards as $contact) {
-			$contacts .= $contact["carddata"]."\n";
+		$dir = $outpath . "/" . $user . "/files/sysbackup/contacts";
+		if( ! is_dir( $dir ))
+		{
+			mkdir( $dir , 0700, true);
+		}
+		if( ! is_dir( $dir ) )
+		{
+			echo "Failed to create directory: $dir\n";
+			continue;
 		}
 
-		file_put_contents( $filename, $contacts);
+		$books = $cDB->getAddressBooksForUser("principals/users/$user");
+		foreach( $books as $book )
+		{
+			$filename = $dir . '/' . str_replace(' ', '_', $user."_".$book["uri"]) . '.vcf';
+
+			$cards = $cDB->getCards( $book["id"] );
+			$contacts = '';
+			foreach($cards as $contact) {
+				$contacts .= $contact["carddata"]."\n";
+			}
+
+			file_put_contents( $filename, $contacts);
+		}
 	}
+}
+catch( Exception $e)
+{
+	print "Export failed: ".$e->getMessage()."\n";
 }

@@ -1,4 +1,12 @@
 #!/bin/bash
+
+#
+# s3ql_backup.sh
+#
+# Performs a backup on a (fuse) mounted s3ql fs
+#
+#
+
 src=$(realpath "${BASH_SOURCE[0]}")
 DIR=$(dirname $src)
 cd $DIR

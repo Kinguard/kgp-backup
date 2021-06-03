@@ -1,4 +1,7 @@
 #!/bin/bash
+#
+# backup.lib.sh
+#
 # This is a pure function file to be included in other scripts.
 # This "lib" requires that "backup.conf" has previously been sourced.
 

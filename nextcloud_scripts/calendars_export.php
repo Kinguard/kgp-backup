@@ -11,7 +11,15 @@ if (!OC::$CLI) {
 	exit(0);
 }
 
-OCP\App::checkAppEnabled('calendar');
+$app = new Application();
+$cont = $app->getContainer();
+$app_mgr = $cont->get(AppManager::class);
+
+if( ! $app_mgr->isInstalled('calendar') )
+{
+	print "Calendar not installed!";
+	exit(0);
+}
 
 $outpath = ".";
 if( count( $argv ) >= 2 )
@@ -35,17 +43,18 @@ try
 		}
 	}
 
-	$app = new Application();
-	$cDB = $app->getContainer()->query(CalDavBackend::class);
+	$cDB = $cont->get(CalDavBackend::class);
 
 	foreach( $users as $user )
 	{
 		// Ignore errors for now
 		$dir = $outpath . "/" . $user . "/files/sysbackup/calendars";
-		mkdir( $dir , 0700, true);
+		if( ! is_dir( $dir ))
+		{
+			mkdir( $dir , 0700, true);
+		}
 		if( ! is_dir( $dir ) )
 		{
-			echo "Failed to create directory: $dir\n";
 			continue;
 		}
 

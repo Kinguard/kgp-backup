@@ -1,6 +1,13 @@
 #!/bin/bash
 #set -x
 
+#
+# mount_fs.sh
+#
+# Mount s3ql fs according to config
+#
+#
+
 DEBUG=0
 src=$(realpath "${BASH_SOURCE[0]}")
 DIR=$(dirname $src)
