@@ -249,6 +249,8 @@ echo "RSYNC system: $rsync_system"
 echo "Copy kinguard files (/etc/kinguard/)"
 
 rsync -qaHAXx --delete-during --delete-excluded --partial --info=progress2\
+    --exclude "scripts" \
+    --exclude "divert" \
     "/etc/kinguard" \
     "./${new_backup}/${systemdir}/etc/"  > ${progressfile}
 
