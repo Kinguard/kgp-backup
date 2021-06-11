@@ -22,10 +22,6 @@ BASEPATH=""
 # Path to where _user_ storage data should be written.
 # i.e. not system configuration as hostname etc
 DESTPATH=/mnt
-
-# Path on device without separate storage partition
-#DESTPATH=/var
-
 MYSQLCONF=/usr/share/opi-backup/my.cnf
 
 state=0
@@ -99,9 +95,16 @@ fi
 # Where should we read restore data from?
 RESTOREPATH=$1
 
+if [ ${DESTPATH} = "/var" ]
+then
+	log_debug "Revert to use original sql config"
+	MYSQLCONF=/etc/mysql/my.cnf
+fi
+
 log_debug "Restore from  : ${RESTOREPATH}"
 log_debug "Using basepath: ${BASEPATH}"
 log_debug "Using prefix  : ${DESTPATH}"
+log_debug "Using db conf : ${MYSQLCONF}"
 
 function state_update {
 	if [[ -z "$state" ]]; then
