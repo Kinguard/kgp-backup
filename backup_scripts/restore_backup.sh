@@ -76,6 +76,7 @@ do
 		;;
 	v)
 		LOGLEVEL=8
+		;;
 	:)
 		exit_fail "Error -${OPTARG} requires an argument."
 		;;
