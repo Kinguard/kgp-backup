@@ -57,20 +57,18 @@ def readcache(backend):
     return config[backend]
 
 def writecache(stats):
+
+    filecontent = ""
+    config = {}
+
     try:
         dprint("Open config file")
         conf = open(CACHED_QUOTA,"r")
-    except IOError:
-        config = {}
-    except Exception as e:
-        dprint("Failed to open config file")
-        dprint(e)
-        terminate(1)
-
-    try:
         dprint("Reading config")
         filecontent = conf.read()
         conf.close()
+    except IOError:
+        dprint("Failed to open quota cache for reading")
     except Exception as e:
         dprint("Failed to read config file")
         dprint(e)
@@ -99,8 +97,6 @@ def writecache(stats):
     except Exception as e:
         dprint("Failed to write config file")
         dprint(e)
-
-
 
 
 ### -------------- MAIN ---------------
