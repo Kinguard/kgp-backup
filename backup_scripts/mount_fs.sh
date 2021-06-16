@@ -136,6 +136,7 @@ then
 fi
 
 bucket=$(kgp-sysinfo -c backup -k bucket -p)
+region=$(kgp-sysinfo -c backup -k region -p)
 
 
 if [ $restore -ne 1 ]
@@ -226,7 +227,7 @@ else
 			;;
 		"s3://")
 			# setup path to be 'bucket' read from target.conf
-			path=$bucket
+			path=${region}/${bucket}
 			;;
 		*)
 			;;
