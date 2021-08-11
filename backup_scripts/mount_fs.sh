@@ -350,10 +350,23 @@ else
 			fi
 		done
 	else
+		if mountpoint -q $device_mountpath
+		then
+			debug "Umounting $device_mountpath"
+			umount $device_mountpath
+		fi
+
 		exit_fail $NoSuitableTarget "No valid targets for backup"
 	fi
 
 	if [[ ${#valid_backends[@]} -eq 0 ]]; then
+
+		if mountpoint -q $device_mountpath
+		then
+			debug "Umounting $device_mountpath"
+			umount $device_mountpath
+		fi
+
 		exit_fail $NoSuitableTarget "No Suitable Target"
 	fi
 
