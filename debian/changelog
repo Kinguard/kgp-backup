@@ -1,3 +1,59 @@
+opi-backup (2.3.53~test4) vili; urgency=medium
+
+  * Umount possible mounted local devices upon failure
+
+ -- Tor Krill <tor@openproducts.se>  Wed, 11 Aug 2021 15:51:49 +0200
+
+opi-backup (2.3.53~test3) vili; urgency=medium
+
+  * Fail gracefully if qouta-cache not present
+
+ -- Tor Krill <tor@openproducts.se>  Wed, 16 Jun 2021 15:14:00 +0200
+
+opi-backup (2.3.53~test2) vili; urgency=medium
+
+  * Add region to S3 config
+
+ -- Tor Krill <tor@openproducts.se>  Wed, 16 Jun 2021 11:32:17 +0200
+
+opi-backup (2.3.53~test1) vili; urgency=medium
+
+  * Use mysql conf depending on storage mount
+
+ -- Tor Krill <tor@openproducts.se>  Fri, 11 Jun 2021 15:36:10 +0200
+
+opi-backup (2.3.52) vili; urgency=medium
+
+  * Fix typo in restore script
+
+ -- Tor Krill <tor@openproducts.se>  Fri, 11 Jun 2021 14:59:45 +0200
+
+opi-backup (2.3.51) vili; urgency=medium
+
+  * Rework to accept cmd-line arguments
+  * Only start DB if not running
+  * Add standard logging
+
+ -- Tor Krill <tor@openproducts.se>  Fri, 11 Jun 2021 13:57:50 +0200
+
+opi-backup (2.3.50) vili; urgency=medium
+
+  * Exclude package provided files in backup
+
+ -- Tor Krill <tor@openproducts.se>  Wed, 09 Jun 2021 11:25:45 +0200
+
+opi-backup (2.3.49) vili; urgency=medium
+
+  * Fix mount detection which failed in container context
+
+ -- Tor Krill <tor@openproducts.se>  Thu, 03 Jun 2021 15:44:39 +0200
+
+opi-backup (2.3.48) vili; urgency=medium
+
+  * Fixes to NC backup scripts
+
+ -- Tor Krill <tor@openproducts.se>  Thu, 03 Jun 2021 15:39:01 +0200
+
 opi-backup (2.3.47) vili; urgency=medium
 
   * Catch if realpath fails with none existant path (As in a container)
