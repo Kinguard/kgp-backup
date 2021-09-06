@@ -33,6 +33,12 @@ case "$1" in
 			chmod 0600 /var/opi/etc/backup/auth.conf
 		fi
 
+		if [ -e /etc/cron.daily/backup_cron ]
+		then
+			# Make sure we dont have any left over crontab entries
+			rm /etc/cron.daily/backup_cron
+		fi
+
 		if [ ! -e /etc/kinguard/backupconfig.json ] || md5sum --status -c /usr/share/opi-backup/backupconfig-faulty.json.md5
 		then
 			cp /usr/share/opi-backup/backupconfig.json /etc/kinguard/backupconfig.json
