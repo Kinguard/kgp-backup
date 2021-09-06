@@ -19,103 +19,104 @@ set -e
 
 
 case "$1" in
-    configure)
+	configure)
 
-	if [ ! -e /etc/opi-control/completed/mount-backup ]
-	then
-		ln -s /usr/share/opi-backup/link_backup.sh /etc/opi-control/completed/mount-backup
-	fi
-	
-	if [ ! -e /var/opi/etc/backup/auth.conf ]
-	then
-		mkdir -p /var/opi/etc/backup
-		cp /usr/share/opi-backup/auth.conf /var/opi/etc/backup/
-		chmod 0600 /var/opi/etc/backup/auth.conf
-	fi
-
-	if [ ! -e /etc/kinguard/backupconfig.json ] || md5sum --status -c /usr/share/opi-backup/backupconfig-faulty.json.md5
-	then
-		cp /usr/share/opi-backup/backupconfig.json /etc/kinguard/backupconfig.json
-	fi
-
-    # mountpath and authfile has previously been static in "backup.conf", move it to sysconfig
-    if [ ! $(kgp-sysinfo -c backup -k devicemountpath) ]
-    then
-        kgp-sysinfo -c backup -k devicemountpath -w "/mnt/usb"
-    fi
-
-    if [ ! $(kgp-sysinfo -c backup -k authfile) ]
-    then
-        kgp-sysinfo -c backup -k authfile -w "/var/opi/etc/backup/auth.conf"
-    fi
-
-
-	if [ -e /var/opi/etc/backup/target.conf ]
-	then
-		# migrate to sysconfig
-
-		oldconfig="/var/opi/etc/backup/target.conf"
-        backend=$(sed -n 's/backend=\"\?\([a-z0-9:\/]*\)\"\?$/\1/ p' <$oldconfig)
-        if [ ! -z $backend ]
-        then
-        	if [ $backend = "none" ]  # "none" was previously used to disable backup.
-        	then
-        		kgp-sysinfo -b -c backup -k enabled -w "false"	
-        	else
-        		kgp-sysinfo -b -c backup -k enabled -w "true"	
-        	fi
-            kgp-sysinfo -c backup -k backend -w "$backend"
-        else
-		if [ ! $(kgp-sysinfo -c backup -k enabled) ]
+		if [ ! -e /etc/opi-control/completed/mount-backup ]
 		then
-        		kgp-sysinfo -b -c backup -k enabled -w "false"	
+			ln -s /usr/share/opi-backup/link_backup.sh /etc/opi-control/completed/mount-backup
 		fi
-        fi
 
-        bucket=$(sed -n 's/bucket=\"?\([a-z0-9\.\-]*\)\"?$/\1/ p' <$oldconfig)
-        if [ ! -z $bucket ]
-        then
-            kgp-sysinfo -c backup -k bucket -w "$bucket"
-        fi
+		if [ ! -e /var/opi/etc/backup/auth.conf ]
+		then
+			mkdir -p /var/opi/etc/backup
+			cp /usr/share/opi-backup/auth.conf /var/opi/etc/backup/
+			chmod 0600 /var/opi/etc/backup/auth.conf
+		fi
 
-        type=$(sed -n 's/type=\(.*\)$/\1/ p' <$oldconfig)
-        if [ ! -z $type ]
-        then
-            # this should not exist, it has never been used.
-            kgp-sysinfo -c backup -k type -w "$type"
-        fi
+		if [ ! -e /etc/kinguard/backupconfig.json ] || md5sum --status -c /usr/share/opi-backup/backupconfig-faulty.json.md5
+		then
+			cp /usr/share/opi-backup/backupconfig.json /etc/kinguard/backupconfig.json
+		fi
 
-        rm $oldconfig
+		# mountpath and authfile has previously been static in "backup.conf", move it to sysconfig
+		if [ ! $(kgp-sysinfo -c backup -k devicemountpath) ]
+		then
+			kgp-sysinfo -c backup -k devicemountpath -w "/mnt/usb"
+		fi
 
-	fi
+		if [ ! $(kgp-sysinfo -c backup -k authfile) ]
+		then
+			kgp-sysinfo -c backup -k authfile -w "/var/opi/etc/backup/auth.conf"
+		fi
+
+		if [ -e /var/opi/etc/backup/target.conf ]
+		then
+			# migrate to sysconfig
+
+			oldconfig="/var/opi/etc/backup/target.conf"
+			backend=$(sed -n 's/backend=\"\?\([a-z0-9:\/]*\)\"\?$/\1/ p' <$oldconfig)
+			if [ ! -z $backend ]
+			then
+				if [ $backend = "none" ]  # "none" was previously used to disable backup.
+				then
+					kgp-sysinfo -b -c backup -k enabled -w "false"
+				else
+					kgp-sysinfo -b -c backup -k enabled -w "true"
+				fi
+				kgp-sysinfo -c backup -k backend -w "$backend"
+			else
+			if [ ! $(kgp-sysinfo -c backup -k enabled) ]
+			then
+					kgp-sysinfo -b -c backup -k enabled -w "false"
+			fi
+			fi
+
+			bucket=$(sed -n 's/bucket=\"?\([a-z0-9\.\-]*\)\"?$/\1/ p' <$oldconfig)
+			if [ ! -z $bucket ]
+			then
+				kgp-sysinfo -c backup -k bucket -w "$bucket"
+			fi
+
+			type=$(sed -n 's/type=\(.*\)$/\1/ p' <$oldconfig)
+			if [ ! -z $type ]
+			then
+				# this should not exist, it has never been used.
+				kgp-sysinfo -c backup -k type -w "$type"
+			fi
+
+			rm $oldconfig
+
+		fi
 
 
-	if [ ! -e /var/log/opi-backup ]
-	then
-		mkdir -p /var/opi/log/backup
-		ln -s /var/opi/log/backup /var/log/opi-backup
-	fi
+		if [ ! -e /var/log/opi-backup ]
+		then
+			mkdir -p /var/opi/log/backup
+			ln -s /var/opi/log/backup /var/log/opi-backup
+		fi
 
-	# Fix permissions
-	chmod 0770 /usr/share/opi-backup/s3ql_backup.sh
-	chmod 0770 /usr/share/opi-backup/opi_backup.sh
-	chmod 0770 /usr/share/opi-backup/mount_fs.sh
-	chmod 0770 /usr/share/opi-backup/link_backup.sh
-	chmod 0770 /usr/share/opi-backup/get_quota.py
-	chmod 0600 /usr/share/opi-backup/backup.conf
-	chmod 0600 /var/opi/etc/backup/auth.conf
+		# Fix permissions
+		chmod 0770 /usr/share/opi-backup/s3ql_backup.sh
+		chmod 0770 /usr/share/opi-backup/opi_backup.sh
+		chmod 0770 /usr/share/opi-backup/mount_fs.sh
+		chmod 0770 /usr/share/opi-backup/link_backup.sh
+		chmod 0770 /usr/share/opi-backup/get_quota.py
+		chmod 0600 /usr/share/opi-backup/backup.conf
+		chmod 0600 /var/opi/etc/backup/auth.conf
 
-	chown -R root:root /usr/share/opi-backup/
+		chown -R root:root /usr/share/opi-backup/
 
-    ;;
+		# Setup cronjob with randomized start time
+		/usr/share/opi-backup/gencrontab.sh
+	;;
 
-    abort-upgrade|abort-remove|abort-deconfigure)
-    ;;
+	abort-upgrade|abort-remove|abort-deconfigure)
+	;;
 
-    *)
-        echo "postinst called with unknown argument \`$1'" >&2
-        exit 1
-    ;;
+	*)
+		echo "postinst called with unknown argument \`$1'" >&2
+		exit 1
+	;;
 esac
 
 # dh_installdeb will replace this with shell code automatically

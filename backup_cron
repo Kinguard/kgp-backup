@@ -1,2 +1,0 @@
-#!/bin/sh
-/usr/share/opi-backup/opi_backup.sh -p || exit 0
