@@ -1,3 +1,21 @@
+opi-backup (2.3.53) vili; urgency=medium
+
+  * Buster release
+
+ -- Tor Krill <tor@openproducts.se>  Tue, 07 Sep 2021 10:49:35 +0200
+
+opi-backup (2.3.53~test7) vili; urgency=medium
+
+  * Try remove left over crontab script :(
+
+ -- Tor Krill <tor@openproducts.se>  Mon, 06 Sep 2021 17:26:31 +0200
+
+opi-backup (2.3.53~test6) vili; urgency=medium
+
+  * Rebuild
+
+ -- Tor Krill <tor@openproducts.se>  Mon, 06 Sep 2021 17:14:22 +0200
+
 opi-backup (2.3.53~test5) vili; urgency=medium
 
   * Use randomized generated crontab entry for backup
