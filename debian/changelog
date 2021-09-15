@@ -1,3 +1,9 @@
+opi-backup (2.3.55) vili; urgency=medium
+
+  * Update restore paths
+
+ -- Tor Krill <tor@openproducts.se>  Wed, 15 Sep 2021 16:57:13 +0200
+
 opi-backup (2.3.54) vili; urgency=medium
 
   * Add stateinfo to progress informantion

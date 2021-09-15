@@ -21,7 +21,7 @@ BASEPATH=""
 
 # Path to where _user_ storage data should be written.
 # i.e. not system configuration as hostname etc
-DESTPATH=/mnt
+DESTPATH=/mnt/opi
 MYSQLCONF=/usr/share/opi-backup/my.cnf
 
 state=0
@@ -95,7 +95,7 @@ fi
 # Where should we read restore data from?
 RESTOREPATH=$1
 
-if [ ${DESTPATH} = "/var" ]
+if [ ${DESTPATH} = "/var/opi" ]
 then
 	log_debug "Revert to use original sql config"
 	MYSQLCONF=/etc/mysql/my.cnf
@@ -189,7 +189,7 @@ state_update "Clean install target"
 
 # Make sure we have no dangling certs
 # ?? this should be original /var/opi/etc where no certs currently is stored, disable for now
-# rm -f ${BASEPATH}${DESTPATH}/opi/etc/*.pem
+# rm -f ${BASEPATH}${DESTPATH}/etc/*.pem
 
 # Copy data from backup
 
@@ -200,8 +200,8 @@ log_debug "ID: $unit_id"
 state_update "Restore system data"
 # owncloud data has incorreclty been included in older backups, no need to restore that here.
 # Restore /var/opi from $RESTOREPATH/system/opi
-mkdir -p ${BASEPATH}${DESTPATH}/
-rsync -ahv --info=progress2 --exclude "owncloud/data" $RESTOREPATH/system/opi ${BASEPATH}${DESTPATH}/  > ${progressfile}
+mkdir -p ${BASEPATH}${DESTPATH}
+rsync -ahv --info=progress2 --exclude "owncloud/data" $RESTOREPATH/system/opi/ ${BASEPATH}${DESTPATH}/  > ${progressfile}
 
 state_update "Restore system configs"
 # Restore /etc/opi
@@ -220,32 +220,32 @@ kgp-sysinfo -w "$unit_id" -c "hostinfo" -k "unitid"
 
 state_update "Restore user data"
 # Restore nextcloud user data /var/opi/nextcloud/data
-mkdir -p ${BASEPATH}${DESTPATH}/opi/nextcloud/data/
-rsync -ahv --info=progress2 --exclude "files/sysbackup" $RESTOREPATH/userdata/* ${BASEPATH}${DESTPATH}/opi/nextcloud/data/  > ${progressfile}
+mkdir -p ${BASEPATH}${DESTPATH}/nextcloud/data/
+rsync -ahv --info=progress2 --exclude "files/sysbackup" $RESTOREPATH/userdata/* ${BASEPATH}${DESTPATH}/nextcloud/data/  > ${progressfile}
 
 state_update "Setup environment and file permissions"
 # Make sure OC gets its precious stamp file
-touch ${BASEPATH}${DESTPATH}/opi/nextcloud/data/.ocdata
+touch ${BASEPATH}${DESTPATH}/nextcloud/data/.ocdata
 
 # setup correct permissions
 chmod 0755 ${BASEPATH}/etc/opi
-chmod 0755 ${BASEPATH}${DESTPATH}/opi
+chmod 0755 ${BASEPATH}${DESTPATH}
 
-chown -R fetchmail:nogroup ${BASEPATH}${DESTPATH}/opi/fetchmail/
-chmod 755 ${BASEPATH}${DESTPATH}/opi/etc/
-chmod 0755 ${BASEPATH}${DESTPATH}/opi/mail/
-chown -R postfix:postfix ${BASEPATH}${DESTPATH}/opi/mail/*
-chown -R 5000:5000 ${BASEPATH}${DESTPATH}/opi/mail/data
-chmod 0770 ${BASEPATH}${DESTPATH}/opi/mail/data/
+chown -R fetchmail:nogroup ${BASEPATH}${DESTPATH}/fetchmail/
+chmod 755 ${BASEPATH}${DESTPATH}/etc/
+chmod 0755 ${BASEPATH}${DESTPATH}/mail/
+chown -R postfix:postfix ${BASEPATH}${DESTPATH}/mail/*
+chown -R 5000:5000 ${BASEPATH}${DESTPATH}/mail/data
+chmod 0770 ${BASEPATH}${DESTPATH}/mail/data/
 
-chmod 0755 ${BASEPATH}${DESTPATH}/opi/nextcloud/
-chown -R  www-data:www-data ${BASEPATH}${DESTPATH}/opi/nextcloud/data
-chmod -R og+w ${BASEPATH}${DESTPATH}/opi/nextcloud/data
+chmod 0755 ${BASEPATH}${DESTPATH}/nextcloud/
+chown -R  www-data:www-data ${BASEPATH}${DESTPATH}/nextcloud/data
+chmod -R og+w ${BASEPATH}${DESTPATH}nextcloud/data
 
-chmod 0755 ${BASEPATH}${DESTPATH}/opi/roundcube/
-chown -R www-data:www-data ${BASEPATH}${DESTPATH}/opi/roundcube/*
+chmod 0755 ${BASEPATH}${DESTPATH}/roundcube/
+chown -R www-data:www-data ${BASEPATH}${DESTPATH}/roundcube/*
 
-chown -R secop:secop ${BASEPATH}${DESTPATH}/opi/secop
+chown -R secop:secop ${BASEPATH}${DESTPATH}/secop
 
 startsql
 
