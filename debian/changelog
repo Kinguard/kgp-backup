@@ -1,3 +1,9 @@
+opi-backup (2.3.54) vili; urgency=medium
+
+  * Add stateinfo to progress informantion
+
+ -- Tor Krill <tor@openproducts.se>  Wed, 15 Sep 2021 14:53:05 +0200
+
 opi-backup (2.3.53) vili; urgency=medium
 
   * Buster release
