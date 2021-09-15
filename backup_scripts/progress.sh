@@ -29,10 +29,16 @@ if [[ -e $progressfile ]];then
 	fi
 fi
 
+STATEINFO=""
+if [[ -e $statefile ]]
+then
+	STATEINFO=", \"stateinfo\":$(<$statefile)"
+fi
+
 # Simple check that we at lease have 4 elements....
 # also check that the filename is valid.
 if [[ -z "$eta" ]] || [[ -z "$filename" ]]; then
 	echo '{"status":"0", "filename":"", "progress":"0", "eta":"", "rate":"", "transferred":""}'
 else
-	echo '{"status":"1", "filename":"'$filename'", "progress":"'$progress'", "eta":"'$eta'", "rate":"'$rate'", "transferred":"'$transferred'"}'
+	echo '{"status":"1", "filename":"'$filename'", "progress":"'$progress'", "eta":"'$eta'", "rate":"'$rate'", "transferred":"'$transferred'"'$STATEINFO '}'
 fi
